@@ -8,14 +8,10 @@ const MainLayout = ({
   children: React.ReactNode;
 }>) => {
   return (
-    <div>
-      <SidebarProvider>
-        <div className="flex h-screen w-full">
-          <AppSidebar />
-          <main className="flex-1">{children}</main>
-        </div>
-      </SidebarProvider>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <main className="w-full bg-gray-100">{children}</main>
+    </SidebarProvider>
   );
 };
 

@@ -23,7 +23,7 @@ export async function NavUser({ user }: { user: User }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground bg-white rounded-xl hover:bg-white focus-visible:shadow-none"
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage

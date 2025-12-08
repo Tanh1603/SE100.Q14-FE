@@ -33,10 +33,18 @@ export function NavItem({ items }: { items: MenuItem[] }) {
             item.items?.some((i) => pathname.startsWith(i.url));
           return !hasSubmenu ? (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild isActive={isActive}>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive}
+                className="hover:bg-gray-400"
+              >
                 <a href={item.href}>
-                  <Icon />
-                  <span>{item.title}</span>
+                  <Icon
+                    className={isActive ? "text-[#056569]" : "text-white"}
+                  />
+                  <span className={isActive ? "text-[#056569]" : "text-white"}>
+                    {item.title}
+                  </span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

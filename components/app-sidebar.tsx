@@ -6,13 +6,11 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getMenuByRole } from "@/config/menu";
 import { getRole } from "@/lib/role.utils";
 import { currentUser } from "@clerk/nextjs/server";
-import { GalleryVerticalEnd } from "lucide-react";
 import { NavItem } from "./nav-item";
 import { NavUser } from "./nav-user";
 
@@ -25,26 +23,21 @@ export async function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="bg-primary">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <div>
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <GalleryVerticalEnd className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <h1 className="font-medium text-xl">Tiệm cầm đồ</h1>
-                </div>
-              </div>
-            </SidebarMenuButton>
+            <div className="flex items-center">
+              <h1 className=" font-bold text-xl text-white">Tiệm cầm đồ</h1>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-primary">
         <NavItem items={menuItem} />
       </SidebarContent>
-      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
+      <SidebarFooter className="bg-primary">
+        {user && <NavUser user={user} />}
+      </SidebarFooter>
     </Sidebar>
   );
 }
