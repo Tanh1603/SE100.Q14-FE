@@ -1,8 +1,8 @@
 "use client";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useClerk } from "@clerk/nextjs";
 import { Loader2, LogOut } from "lucide-react";
 import { useState } from "react";
-import { DropdownMenuItem } from "./ui/dropdown-menu";
 
 const SignOutBtn = () => {
   const { signOut } = useClerk();
@@ -24,7 +24,7 @@ const SignOutBtn = () => {
       ) : (
         <LogOut className="mr-2" />
       )}
-      {loading ? "Đang đăng xuất..." : "Log out"}
+      {loading ? "Đang đăng xuất..." : "Đăng xuất"}
     </DropdownMenuItem>
   );
 };

@@ -1,14 +1,15 @@
 import { Role } from "@/types/constant";
 import {
-  LayoutDashboard,
-  FileSignature,
-  Users,
   Archive,
-  Wallet,
   BarChart3,
+  FileSignature,
+  LayoutDashboard,
   LineChart,
+  Store,
   UserCog,
-  Settings,
+  Users,
+  Wallet,
+  Warehouse,
 } from "lucide-react";
 
 export type MenuIcon =
@@ -19,7 +20,8 @@ export type MenuIcon =
   | "cashbook"
   | "reports"
   | "staff"
-  | "settings";
+  | "branch"
+  | "warehouse";
 
 export interface MenuItem {
   title: string;
@@ -46,7 +48,8 @@ export const iconMap = {
   statistics: BarChart3,
   reports: LineChart,
   staff: UserCog,
-  settings: Settings,
+  branch: Store,
+  warehouse: Warehouse,
 };
 
 export const menuConfig: MenuItem[] = [
@@ -104,14 +107,22 @@ export const menuConfig: MenuItem[] = [
     title: "Quản lý nhân viên",
     href: "/staffs",
     icon: "staff",
+    roles: ["admin", "manager"],
+  },
+
+  //
+  {
+    title: "Quản lý kho",
+    href: "/warehouses",
+    icon: "warehouse",
     roles: ["admin"],
   },
 
-  // Settings
+  //
   {
-    title: "Cài đặt hệ thống",
-    href: "/settings",
-    icon: "settings",
+    title: "Quản lý chi nhánh",
+    href: "/branches",
+    icon: "branch",
     roles: ["admin"],
   },
 ];

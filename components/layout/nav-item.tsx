@@ -16,8 +16,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { iconMap, MenuItem } from "@/config/menu";
 import { usePathname } from "next/navigation";
+import { iconMap, MenuItem } from "@/config/navigation/menu.config";
 
 export function NavItem({ items }: { items: MenuItem[] }) {
   const pathname = usePathname();

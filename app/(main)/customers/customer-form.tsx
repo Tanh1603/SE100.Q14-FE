@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -7,14 +8,29 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { locations } from "@/mock-data/location";
+import { Customer } from "@/types/customer";
 import { Camera, IdCard, Info, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
-const CreateCustomerForm = () => {
-  const form = useForm();
+type CustomerFormProps = {
+  initialCustomer?: Customer | null;
+};
+
+const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
+  const form = useForm<Customer>({
+    defaultValues: initialCustomer || {},
+  });
 
   // Avatar state
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -32,6 +48,14 @@ const CreateCustomerForm = () => {
     reader.onload = () => setAvatar(reader.result as string);
     reader.readAsDataURL(file);
   };
+
+  // handle locations
+  const [province, setProvince] = useState<string>(
+    initialCustomer?.provinceId || ""
+  );
+  const [ward, setWard] = useState<string>(initialCustomer?.wardId || "");
+  const selectedProvince = locations.find((item) => item.value === province);
+  const wards = selectedProvince?.wards ?? [];
 
   return (
     <Form {...form}>
@@ -96,16 +120,17 @@ const CreateCustomerForm = () => {
                 />
               </div>
 
-              {/* --- GRID 3 COLUMN INPUTS --- */}
               <div className="grid grid-cols-3 gap-4 flex-1">
                 <FormField
                   control={form.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Họ tên</FormLabel>
+                      <FormLabel>
+                        Họ và tên<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập họ tên" {...field} />
+                        <Input placeholder="Nhập họ và tên" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -117,7 +142,9 @@ const CreateCustomerForm = () => {
                   name="dob"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Ngày sinh</FormLabel>
+                      <FormLabel>
+                        Ngày sinh<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="date"
@@ -134,7 +161,9 @@ const CreateCustomerForm = () => {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Số điện thoại</FormLabel>
+                      <FormLabel className="text-sm">
+                        Số điện thoại<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="Nhập số điện thoại" {...field} />
                       </FormControl>
@@ -147,7 +176,9 @@ const CreateCustomerForm = () => {
                   name="cccd"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Số CCCD</FormLabel>
+                      <FormLabel className="text-sm">
+                        Số CCCD<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="Nhập số CCCD" {...field} />
                       </FormControl>
@@ -160,7 +191,9 @@ const CreateCustomerForm = () => {
                   name="issueDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Ngày cấp</FormLabel>
+                      <FormLabel className="text-sm">
+                        Ngày cấp<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="date"
@@ -177,7 +210,9 @@ const CreateCustomerForm = () => {
                   name="issuePlace"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Nơi cấp</FormLabel>
+                      <FormLabel className="text-sm">
+                        Nơi cấp<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="Nhập nơi cấp" {...field} />
                       </FormControl>
@@ -190,7 +225,9 @@ const CreateCustomerForm = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Email</FormLabel>
+                      <FormLabel className="text-sm">
+                        Email<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -207,9 +244,11 @@ const CreateCustomerForm = () => {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">Địa chỉ</FormLabel>
+                      <FormLabel className="text-sm">
+                        Số nhà<span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập địa chỉ" {...field} />
+                        <Input placeholder="Nhập số nhà" {...field} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -217,14 +256,63 @@ const CreateCustomerForm = () => {
 
                 <FormField
                   control={form.control}
-                  name="permanentAddress"
-                  render={({ field }) => (
+                  name="provinceId"
+                  render={({}) => (
                     <FormItem>
                       <FormLabel className="text-sm">
-                        Hộ khẩu thường trú
+                        Tỉnh/Thành phố<span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập hộ khẩu" {...field} />
+                        <Select
+                          value={province}
+                          onValueChange={(value) => {
+                            setProvince(value);
+                            setWard("");
+                          }}
+                        >
+                          <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Chọn tỉnh / thành phố" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {locations.map((item) => (
+                              <SelectItem key={item.id} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="wardId"
+                  render={({}) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">
+                        Phường/Xã<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Select
+                          value={ward}
+                          onValueChange={setWard}
+                          disabled={!province}
+                        >
+                          <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Chọn phường / xã" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {wards.map((w) => (
+                              <SelectItem key={w.id} value={w.value}>
+                                {w.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}
@@ -234,13 +322,15 @@ const CreateCustomerForm = () => {
           </TabsContent>
 
           <TabsContent value="otherInfo">
-            <div className="grid grid-cols-4 gap-4 flex-1">
+            <div className="grid grid-cols-3 gap-4 flex-1">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="otherInfo.job"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">Nghề nghiệp</FormLabel>
+                    <FormLabel className="text-sm">
+                      Nghề nghiệp<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập nghề nghiệp" {...field} />
                     </FormControl>
@@ -251,10 +341,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="dob"
+                name="otherInfo.workplace"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nơi làm việc</FormLabel>
+                    <FormLabel>
+                      Nơi làm việc<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập nơi làm việc" {...field} />
                     </FormControl>
@@ -264,7 +356,7 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="otherInfo.income"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Thu nhập</FormLabel>
@@ -277,10 +369,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="cccd"
+                name="otherInfo.emergencyContactName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Người liên hệ</FormLabel>
+                    <FormLabel>
+                      Người liên hệ<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập người liên hệ" {...field} />
                     </FormControl>
@@ -290,28 +384,18 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="issueDate"
+                name="otherInfo.emergencyContactPhone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại người liên hệ</FormLabel>
+                    <FormLabel>
+                      Số điện thoại người liên hệ
+                      <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Nhập số điện thoại người liên hệ"
                         {...field}
                       />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="issuePlace"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ghi chú</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập ghi chú" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -323,10 +407,12 @@ const CreateCustomerForm = () => {
             <div className="grid grid-cols-3 gap-4 flex-1">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="familyInfo.father.fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Họ tên bố</FormLabel>
+                    <FormLabel>
+                      Họ tên bố<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập họ tên bố" {...field} />
                     </FormControl>
@@ -337,10 +423,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="dob"
+                name="familyInfo.father.phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại bố</FormLabel>
+                    <FormLabel>
+                      Số điện thoại bố<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập số điện thoại bố" {...field} />
                     </FormControl>
@@ -350,10 +438,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="cccd"
+                name="familyInfo.father.job"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nghề nghiệp bố</FormLabel>
+                    <FormLabel>
+                      Nghề nghiệp bố<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập nghề nghiệp bố" {...field} />
                     </FormControl>
@@ -363,10 +453,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="fullName"
+                name="familyInfo.mother.fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Họ tên mẹ</FormLabel>
+                    <FormLabel>
+                      Họ tên mẹ<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập họ tên mẹ" {...field} />
                     </FormControl>
@@ -377,10 +469,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="dob"
+                name="familyInfo.mother.phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại mẹ</FormLabel>
+                    <FormLabel>
+                      Số điện thoại mẹ<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập số điện thoại mẹ" {...field} />
                     </FormControl>
@@ -390,10 +484,12 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="cccd"
+                name="familyInfo.mother.job"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nghề nghiệp mẹ</FormLabel>
+                    <FormLabel>
+                      Nghề nghiệp mẹ<span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập nghề nghiệp mẹ" {...field} />
                     </FormControl>
@@ -403,7 +499,7 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="fullName"
+                name="familyInfo.spouse.fullName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Họ tên vợ/chồng</FormLabel>
@@ -417,7 +513,7 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="dob"
+                name="familyInfo.spouse.phone"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Số điện thoại vợ/chông</FormLabel>
@@ -433,7 +529,7 @@ const CreateCustomerForm = () => {
 
               <FormField
                 control={form.control}
-                name="cccd"
+                name="familyInfo.spouse.job"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nghề nghiệp vợ/chồng</FormLabel>
@@ -446,25 +542,15 @@ const CreateCustomerForm = () => {
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="cccd"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Thông tin khác</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập thông tin khác" {...field} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
             </div>
           </TabsContent>
         </Tabs>
+        <div className="flex justify-end">
+          <Button>Xác nhận</Button>
+        </div>
       </form>
     </Form>
   );
 };
 
-export default CreateCustomerForm;
+export default CustomerForm;

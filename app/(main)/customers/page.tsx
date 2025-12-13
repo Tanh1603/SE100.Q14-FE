@@ -1,6 +1,6 @@
 "use client";
 
-import { OpenDialogButton } from "@/components/open-dialog-button";
+import { AppDialog } from "@/components/app-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +16,25 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit, Search, Trash2, Users } from "lucide-react";
-import CreateCustomerForm from "./create-customer-form";
+import { Edit, PlusCircle, Search, Trash2, Users } from "lucide-react";
+import { useState } from "react";
+import CustomerForm from "./customer-form";
+import { mockCustomer } from "@/mock-data/customer";
+import { Customer } from "@/types/customer";
+import Image from "next/image";
 
 const CustomerPage = () => {
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const customers = mockCustomer;
+  const [selectedCustomer, setSelectedCustomer] = useState<
+    Customer | undefined
+  >(undefined);
+
   return (
     <SidebarInset className="bg-red">
       <div className="mx-5">
@@ -67,16 +78,31 @@ const CustomerPage = () => {
         {/* Table */}
         <div className="mt-2 pt-2 px-5 pb-2 bg-white rounded-xl">
           <div className="flex gap-x-5">
-            <OpenDialogButton title="Thêm mới khách hàng">
-              <CreateCustomerForm />
-            </OpenDialogButton>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenDialog(true);
+                setSelectedCustomer(undefined);
+              }}
+            >
+              <PlusCircle />
+              Thêm mới
+            </Button>
 
-            <Button>
+            <Button
+              onClick={() => {
+                setOpenDialog(true);
+              }}
+              disabled={selectedCustomer === undefined}
+            >
               <Edit />
               Sửa
             </Button>
 
-            <Button>
+            <Button
+              variant="destructive"
+              disabled={selectedCustomer === undefined}
+            >
               <Trash2 />
               Xóa
             </Button>
@@ -91,32 +117,52 @@ const CustomerPage = () => {
                   <TableHead className=" text-white">Ngày sinh</TableHead>
                   <TableHead className="text-white">Số CCCD</TableHead>
                   <TableHead className="text-white">Địa chỉ</TableHead>
-                  <TableHead className="text-white">Tình trạng</TableHead>
                   <TableHead className="text-white">Ảnh</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
-                {/* {invoices.map((invoice) => (
+                {customers.map((customer, index) => (
                   <TableRow
-                    key={invoice.invoice}
-                    className="border-t hover:bg-muted/30 transition-colors p-10"
+                    key={customer.id}
+                    className={`border-t cursor-pointer transition-colors ${
+                      selectedCustomer?.id.includes(customer.id)
+                        ? "bg-blue-200"
+                        : "hover:bg-muted/30"
+                    }`}
+                    onClick={() => setSelectedCustomer(customer)}
                   >
-                    <TableCell className="font-medium">
-                      {invoice.invoice}
-                    </TableCell>
-                    <TableCell>{invoice.paymentStatus}</TableCell>
-                    <TableCell>{invoice.paymentMethod}</TableCell>
-                    <TableCell className="text-right">
-                      {invoice.totalAmount}
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{customer.fullName}</TableCell>
+                    <TableCell>{customer.dob}</TableCell>
+                    <TableCell>{customer.cccd}</TableCell>
+                    <TableCell>{customer.address}</TableCell>
+                    <TableCell>
+                      <div className="w-[50px] h-[50px]">
+                        <Image
+                          src={customer.avatar}
+                          alt={customer.fullName}
+                          width={50}
+                          height={50}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))} */}
+                ))}
               </TableBody>
             </Table>
           </div>
         </div>
       </div>
+
+      <AppDialog
+        title="Thêm mới khách hàng"
+        open={openDialog}
+        onOpenChange={() => setOpenDialog(false)}
+      >
+        <CustomerForm initialCustomer={selectedCustomer} />
+      </AppDialog>
     </SidebarInset>
   );
 };

@@ -8,11 +8,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { getMenuByRole } from "@/config/menu";
+import { getMenuByRole } from "@/config/navigation/menu.config";
 import { getRole } from "@/lib/role.utils";
 import { currentUser } from "@clerk/nextjs/server";
+import { NavUser } from "../features/user/nav-user";
 import { NavItem } from "./nav-item";
-import { NavUser } from "./nav-user";
 
 export async function AppSidebar({
   ...props
@@ -20,6 +20,14 @@ export async function AppSidebar({
   const user = await currentUser();
   const role = await getRole();
   const menuItem = await getMenuByRole(role);
+
+  const navUser = user && {
+    id: user.id,
+    fullName: [user.firstName, user.lastName].filter(Boolean).join(" "),
+    imageUrl: user.imageUrl,
+    email: user.emailAddresses?.[0]?.emailAddress,
+    role: user.publicMetadata?.role as string,
+  };
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -36,7 +44,7 @@ export async function AppSidebar({
         <NavItem items={menuItem} />
       </SidebarContent>
       <SidebarFooter className="bg-primary">
-        {user && <NavUser user={user} />}
+        {navUser && <NavUser user={navUser} />}
       </SidebarFooter>
     </Sidebar>
   );
