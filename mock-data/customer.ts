@@ -1,11 +1,12 @@
 // mock-data/customer.ts
 import { Customer } from "@/types/customer";
+import { CustomerStatus } from "@/types/enum";
 
 export const mockCustomer: Customer[] = [
   {
     id: "1",
     avatar:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      "",
     fullName: "Nguyễn Văn A",
     dob: "1995-08-20",
     phone: "0912345678",
@@ -17,6 +18,7 @@ export const mockCustomer: Customer[] = [
     provinceId: "1",
     wardId: "4",
     permanentAddress: "Hà Nội",
+    status: CustomerStatus.NORMAL,
 
     otherInfo: {
       job: "Lập trình viên",
@@ -48,7 +50,7 @@ export const mockCustomer: Customer[] = [
     id: "2",
     avatar:
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
-    fullName: "Nguyễn Văn A",
+    fullName: "Nguyễn Văn B",
     dob: "1995-08-20",
     phone: "0912345678",
     email: "vana@gmail.com",
@@ -56,9 +58,10 @@ export const mockCustomer: Customer[] = [
     issueDate: "2015-06-10",
     issuePlace: "Cục CSQLHC",
     address: "123",
-    provinceId: "1",
-    wardId: "4",
+    provinceId: "2",
+    wardId: "7",
     permanentAddress: "Hà Nội",
+    status: CustomerStatus.DEBT,
 
     otherInfo: {
       job: "Lập trình viên",

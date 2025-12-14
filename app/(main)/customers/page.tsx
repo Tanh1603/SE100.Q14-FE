@@ -1,6 +1,7 @@
 "use client";
 
 import { AppDialog } from "@/components/app-dialog";
+import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,24 +14,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SidebarInset } from "@/components/ui/sidebar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Edit, PlusCircle, Search, Trash2, Users } from "lucide-react";
-import { useState } from "react";
-import CustomerForm from "./customer-form";
 import { mockCustomer } from "@/mock-data/customer";
 import { Customer } from "@/types/customer";
-import Image from "next/image";
+import { CUSTOMER_STATUS_OPTIONS } from "@/types/enum";
+import { Edit, PlusCircle, Search, Trash2, Users } from "lucide-react";
+import { useState } from "react";
+import { CustomerColumn } from "./columns";
+import CustomerForm from "./customer-form";
 
 const CustomerPage = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-  const customers = mockCustomer;
   const [selectedCustomer, setSelectedCustomer] = useState<
     Customer | undefined
   >(undefined);
@@ -61,11 +54,14 @@ const CustomerPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="apple">Bình thường </SelectItem>
-                    <SelectItem value="banana">Nợ xấu</SelectItem>
+                    {CUSTOMER_STATUS_OPTIONS.map((item, index) => (
+                      <SelectItem key={index} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
                 </SelectContent>
-              </Select>{" "}
+              </Select>
             </div>
           </div>
 
@@ -108,50 +104,15 @@ const CustomerPage = () => {
             </Button>
           </div>
 
-          <div className="mt-5 rounded-lg border shadow-sm overflow-hidden">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-primary hover:bg-primary ">
-                  <TableHead className=" text-white">STT</TableHead>
-                  <TableHead className=" text-white">Tên khách hàng</TableHead>
-                  <TableHead className=" text-white">Ngày sinh</TableHead>
-                  <TableHead className="text-white">Số CCCD</TableHead>
-                  <TableHead className="text-white">Địa chỉ</TableHead>
-                  <TableHead className="text-white">Ảnh</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {customers.map((customer, index) => (
-                  <TableRow
-                    key={customer.id}
-                    className={`border-t cursor-pointer transition-colors ${
-                      selectedCustomer?.id.includes(customer.id)
-                        ? "bg-blue-200"
-                        : "hover:bg-muted/30"
-                    }`}
-                    onClick={() => setSelectedCustomer(customer)}
-                  >
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell>{customer.fullName}</TableCell>
-                    <TableCell>{customer.dob}</TableCell>
-                    <TableCell>{customer.cccd}</TableCell>
-                    <TableCell>{customer.address}</TableCell>
-                    <TableCell>
-                      <div className="w-[50px] h-[50px]">
-                        <Image
-                          src={customer.avatar}
-                          alt={customer.fullName}
-                          width={50}
-                          height={50}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="mt-5">
+            <DataTable
+              columns={CustomerColumn}
+              data={mockCustomer}
+              selectedRow={selectedCustomer}
+              onRowClick={(customer) => {
+                setSelectedCustomer(customer);
+              }}
+            />
           </div>
         </div>
       </div>

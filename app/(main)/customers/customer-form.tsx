@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/incompatible-library */
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -18,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { locations } from "@/mock-data/location";
 import { Customer } from "@/types/customer";
+import { CUSTOMER_STATUS_OPTIONS } from "@/types/enum";
 import { Camera, IdCard, Info, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
@@ -33,7 +36,9 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
   });
 
   // Avatar state
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | undefined | undefined>(
+    initialCustomer?.avatar
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => {
@@ -50,16 +55,18 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
   };
 
   // handle locations
-  const [province, setProvince] = useState<string>(
-    initialCustomer?.provinceId || ""
-  );
-  const [ward, setWard] = useState<string>(initialCustomer?.wardId || "");
-  const selectedProvince = locations.find((item) => item.value === province);
+  const provinceId = form.watch("provinceId");
+  const selectedProvince = locations.find((p) => p.id === provinceId);
   const wards = selectedProvince?.wards ?? [];
+
+  // handle submit
+  const onSubmit = (data: Customer) => {
+    console.log(data);
+  };
 
   return (
     <Form {...form}>
-      <form className="space-y-6 w-6xl">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-6xl">
         <Tabs defaultValue="personalInfo" className="min-h-[350px] flex">
           <TabsList>
             <TabsTrigger
@@ -222,6 +229,54 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
+                  name="permanentAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">
+                        Hộ khẩu thường trú
+                        <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Nhập hộ khẩu thường trú"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Tình trạng<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Select value={field.value}>
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Tình trạng" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {CUSTOMER_STATUS_OPTIONS.map((item, index) => (
+                                <SelectItem key={index} value={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
@@ -257,17 +312,17 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                 <FormField
                   control={form.control}
                   name="provinceId"
-                  render={({}) => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm">
                         Tỉnh/Thành phố<span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Select
-                          value={province}
+                          value={field.value}
                           onValueChange={(value) => {
-                            setProvince(value);
-                            setWard("");
+                            field.onChange(value);
+                            form.setValue("wardId", "");
                           }}
                         >
                           <SelectTrigger className="w-[220px]">
@@ -276,7 +331,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                           <SelectContent>
                             {locations.map((item) => (
-                              <SelectItem key={item.id} value={item.value}>
+                              <SelectItem key={item.id} value={item.id}>
                                 {item.label}
                               </SelectItem>
                             ))}
@@ -290,16 +345,16 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                 <FormField
                   control={form.control}
                   name="wardId"
-                  render={({}) => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm">
                         Phường/Xã<span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
                         <Select
-                          value={ward}
-                          onValueChange={setWard}
-                          disabled={!province}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={!provinceId}
                         >
                           <SelectTrigger className="w-[220px]">
                             <SelectValue placeholder="Chọn phường / xã" />
@@ -307,7 +362,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                           <SelectContent>
                             {wards.map((w) => (
-                              <SelectItem key={w.id} value={w.value}>
+                              <SelectItem key={w.id} value={w.id}>
                                 {w.label}
                               </SelectItem>
                             ))}
@@ -546,7 +601,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
           </TabsContent>
         </Tabs>
         <div className="flex justify-end">
-          <Button>Xác nhận</Button>
+          <Button type="submit">Xác nhận</Button>
         </div>
       </form>
     </Form>

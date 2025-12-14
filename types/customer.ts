@@ -1,3 +1,5 @@
+import { CustomerStatus } from "./enum";
+
 // types/customer.ts
 export type Customer = {
   id: string;
@@ -21,6 +23,8 @@ export type Customer = {
     emergencyContactName: string;
     emergencyContactPhone: string;
   };
+
+  status: CustomerStatus
 
   familyInfo: {
     father: Person;
