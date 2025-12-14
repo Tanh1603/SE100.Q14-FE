@@ -1,11 +1,11 @@
-import { staffs } from "@/mock-data/staff";
+import { mockStaffs } from "@/mock-data/staff";
 
 type ProfileContentProps = {
   userId: string;
 };
 
 export function ProfileContent({ userId }: ProfileContentProps) {
-  const staff = staffs.find((s) => s.userId === userId);
+  const staff = mockStaffs.find((s) => s.id === userId);
 
   if (!staff) return <div>Không tìm thấy thông tin nhân viên</div>;
 
@@ -17,9 +17,6 @@ export function ProfileContent({ userId }: ProfileContentProps) {
         </p>
         <p>
           <b>Email:</b> {staff.email}
-        </p>
-        <p>
-          <b>Trạng thái:</b> {staff.status}
         </p>
         <p>
           <b>Vai trò:</b> {staff.id.startsWith("manager") ? "Manager" : "Staff"}

@@ -1,17 +1,17 @@
 import { branches } from "@/mock-data/branches";
-import { staffs } from "@/mock-data/staff";
+import { mockStaffs } from "@/mock-data/staff";
 
 type BranchContentProps = {
   userId: string;
 };
 
 export function BranchContent({ userId }: BranchContentProps) {
-  const userStaffs = staffs.filter((s) => s.userId === userId);
+  const userStaffs = mockStaffs.filter((s) => s.id === userId);
 
   if (userStaffs.length === 0) return <div>Không có chi nhánh nào</div>;
 
   const userBranches = branches.filter((b) =>
-    userStaffs.some((s) => s.branchId === b.id)
+    userStaffs.some((s) => s.branch.id === b.id)
   );
 
   return (

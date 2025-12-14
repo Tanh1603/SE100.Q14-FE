@@ -256,7 +256,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                       </FormLabel>
                       <FormControl>
                         <Select value={field.value}>
-                          <SelectTrigger className="w-[180px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Tình trạng" />
                           </SelectTrigger>
                           <SelectContent>
@@ -325,7 +325,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                             form.setValue("wardId", "");
                           }}
                         >
-                          <SelectTrigger className="w-[220px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Chọn tỉnh / thành phố" />
                           </SelectTrigger>
 
@@ -356,7 +356,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                           onValueChange={field.onChange}
                           disabled={!provinceId}
                         >
-                          <SelectTrigger className="w-[220px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Chọn phường / xã" />
                           </SelectTrigger>
 
