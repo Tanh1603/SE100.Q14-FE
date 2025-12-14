@@ -42,3 +42,14 @@ export const ROLE_OPTIONS = [
   { label: "Quản lí", value: Role.MANAGER },
   { label: "Nhân viên", value: Role.STAFF },
 ];
+
+// Warehouse
+export enum WarehouseStatus {
+  AVAILABLE = "AVAILABLE", // còn chỗ
+  FULL = "FULL", // hết chỗ
+}
+
+export const WAREHOUSE_OPTIONS = [
+  { label: "Còn chỗ", value: WarehouseStatus.AVAILABLE },
+  { label: "Hết chỗ", value: WarehouseStatus.FULL },
+];
