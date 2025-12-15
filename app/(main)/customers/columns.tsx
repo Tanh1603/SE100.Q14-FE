@@ -38,16 +38,16 @@ export const CustomerColumn: ColumnDef<Customer>[] = [
 
       return (
         <div className="flex justify-center">
-          <div className="relative w-20 h-20">
+          <div className="relative w-10 h-10">
             {avatar ? (
               <Image
                 src={avatar}
                 alt={row.original.fullName}
                 fill
-                className="rounded-full object-cover"
+                className=" object-contain"
               />
             ) : (
-              <LucideImageOff className="w-20 h-20 text-muted-foreground flex items-center justify-center" />
+              <LucideImageOff className="w-10 h-10 text-muted-foreground flex items-center justify-center" />
             )}
           </div>
         </div>

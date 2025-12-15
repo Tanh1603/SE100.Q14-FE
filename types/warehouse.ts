@@ -8,4 +8,5 @@ export type Warehouse = {
   province: Location;
   ward: Location;
   status: WarehouseStatus;
+  fee: number;
 };

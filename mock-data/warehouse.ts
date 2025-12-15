@@ -16,6 +16,7 @@ export const mockwarehouses: Warehouse[] = [
       label: "Phường Dịch Vọng Hậu",
     },
     status: WarehouseStatus.AVAILABLE,
+    fee: 50000,
   },
   {
     id: "wh_hcm_q1",
@@ -30,6 +31,7 @@ export const mockwarehouses: Warehouse[] = [
       label: "Phường Bến Nghé",
     },
     status: WarehouseStatus.AVAILABLE,
+    fee: 60000,
   },
   {
     id: "wh_dn_hc",
@@ -44,5 +46,6 @@ export const mockwarehouses: Warehouse[] = [
       label: "Phường Thạch Thang",
     },
     status: WarehouseStatus.AVAILABLE,
+    fee: 70000,
   },
 ];
