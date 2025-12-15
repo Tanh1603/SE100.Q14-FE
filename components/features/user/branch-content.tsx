@@ -1,5 +1,6 @@
-import { branches } from "@/mock-data/branches";
+import { mockBranches } from "@/mock-data/branches";
 import { mockStaffs } from "@/mock-data/staff";
+import { BranchStatus } from "@/types/enum";
 
 type BranchContentProps = {
   userId: string;
@@ -10,7 +11,7 @@ export function BranchContent({ userId }: BranchContentProps) {
 
   if (userStaffs.length === 0) return <div>Không có chi nhánh nào</div>;
 
-  const userBranches = branches.filter((b) =>
+  const userBranches = mockBranches.filter((b) =>
     userStaffs.some((s) => s.branch.id === b.id)
   );
 
@@ -33,7 +34,9 @@ export function BranchContent({ userId }: BranchContentProps) {
             <b>Trạng thái:</b>{" "}
             <span
               className={
-                branch.status === "active" ? "text-green-600" : "text-red-600"
+                branch.status === BranchStatus.ACTIVE
+                  ? "text-green-600"
+                  : "text-red-600"
               }
             >
               {branch.status}

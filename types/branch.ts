@@ -1,9 +1,13 @@
+import { BranchStatus } from "./enum";
+import { Location } from "./location";
+
 export type Branch = {
   id: string;
   name: string;
   address: string;
-  wardId: string;
-  provinceId: string;
+  province: Location;
+  ward: Location;
   phone: string;
-  status: "active";
+  status: BranchStatus;
+  createdAt: string;
 };

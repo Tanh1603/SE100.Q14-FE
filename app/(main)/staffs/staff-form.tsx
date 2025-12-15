@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { branches } from "@/mock-data/branches";
+import { mockBranches } from "@/mock-data/branches";
 import { Gender, GENDER_OPTIONS, Role, ROLE_OPTIONS } from "@/types/enum";
 import { useUser } from "@clerk/nextjs";
 import { IdCard, Info } from "lucide-react";
@@ -287,7 +287,7 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectGroup>
-                                {branches.map((item, index) => (
+                                {mockBranches.map((item, index) => (
                                   <SelectItem key={index} value={item.id}>
                                     {item.name}
                                   </SelectItem>
