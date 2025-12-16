@@ -31,18 +31,6 @@ export const BRANCH_STATUS_OPTIONS = [
   { label: "Đóng cửa", value: BranchStatus.CLOSE },
 ];
 
-// role
-export enum Role {
-  ADMIN = "admin",
-  MANAGER = "manager",
-  STAFF = "staff",
-}
-
-export const ROLE_OPTIONS = [
-  { label: "Quản lí", value: Role.MANAGER },
-  { label: "Nhân viên", value: Role.STAFF },
-];
-
 // Warehouse
 export enum WarehouseStatus {
   AVAILABLE = "AVAILABLE", // còn chỗ
@@ -89,3 +77,77 @@ export enum AssetTypeFieldEnum {
   DATE = "DATE",
   NUMBER = "NUMBER",
 }
+
+// Payment Method
+export enum PaymentMethodEnum {
+  CASH = "CASH",
+  BANK_TRANSFER = "BANK_TRANSFER",
+}
+
+export const PAYMENT_METHOD_OPTIONS = [
+  { label: "Tiền mặt", value: PaymentMethodEnum.CASH },
+  { label: "Chuyển khoản", value: PaymentMethodEnum.BANK_TRANSFER },
+];
+
+export const PaymentMethodColor: Record<PaymentMethodEnum, string> = {
+  [PaymentMethodEnum.CASH]: "bg-green-100 text-green-800",
+  [PaymentMethodEnum.BANK_TRANSFER]: "bg-blue-100 text-blue-800",
+};
+
+// Payment Flow (direction) - for distinguishing income vs expense
+export enum PaymentFlowEnum {
+  IN = "IN", // Money coming in (customer payments)
+  OUT = "OUT", // Money going out (contract disbursements)
+}
+
+export const PAYMENT_FLOW_OPTIONS = [
+  { label: "Thu tiền", value: PaymentFlowEnum.IN },
+  { label: "Chi tiền", value: PaymentFlowEnum.OUT },
+];
+
+export const PaymentFlowColor: Record<PaymentFlowEnum, string> = {
+  [PaymentFlowEnum.IN]: "bg-green-100 text-green-800",
+  [PaymentFlowEnum.OUT]: "bg-red-100 text-red-800",
+};
+
+// Payment Type
+export enum PaymentTypeEnum {
+  PERIODIC = "PERIODIC",
+  EARLY = "EARLY",
+  PAYOFF = "PAYOFF",
+  LATE_FEE = "LATE_FEE",
+  DISBURSEMENT = "DISBURSEMENT", // TODO: Auto-created when admin approves contract
+}
+
+export const PAYMENT_TYPE_OPTIONS = [
+  { label: "Thanh toán định kỳ", value: PaymentTypeEnum.PERIODIC },
+  { label: "Thanh toán sớm", value: PaymentTypeEnum.EARLY },
+  { label: "Tất toán", value: PaymentTypeEnum.PAYOFF },
+  { label: "Phí trễ hạn", value: PaymentTypeEnum.LATE_FEE },
+  { label: "Giải ngân", value: PaymentTypeEnum.DISBURSEMENT },
+];
+
+export const PaymentTypeColor: Record<PaymentTypeEnum, string> = {
+  [PaymentTypeEnum.PERIODIC]: "bg-blue-100 text-blue-800",
+  [PaymentTypeEnum.EARLY]: "bg-purple-100 text-purple-800",
+  [PaymentTypeEnum.PAYOFF]: "bg-green-100 text-green-800",
+  [PaymentTypeEnum.LATE_FEE]: "bg-red-100 text-red-800",
+  [PaymentTypeEnum.DISBURSEMENT]: "bg-orange-100 text-orange-800",
+};
+
+// Payment Component (for allocation display)
+export enum PaymentComponentEnum {
+  PRINCIPAL = "PRINCIPAL",
+  INTEREST = "INTEREST",
+  LATE_FEE = "LATE_FEE",
+  PENALTY = "PENALTY",
+  SERVICE_FEE = "SERVICE_FEE",
+}
+
+export const PAYMENT_COMPONENT_LABELS: Record<PaymentComponentEnum, string> = {
+  [PaymentComponentEnum.PRINCIPAL]: "Gốc",
+  [PaymentComponentEnum.INTEREST]: "Lãi",
+  [PaymentComponentEnum.LATE_FEE]: "Phí trễ hạn",
+  [PaymentComponentEnum.PENALTY]: "Phạt",
+  [PaymentComponentEnum.SERVICE_FEE]: "Phí dịch vụ",
+};

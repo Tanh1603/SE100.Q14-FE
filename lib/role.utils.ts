@@ -1,36 +1,25 @@
-"use server"
-
+import { currentUser } from "@clerk/nextjs/server";
 import { Role } from "@/types/constant";
-import { auth } from "@clerk/nextjs/server";
 
-export const checkRole = async (role: Role) => {
-  const { sessionClaims } = await auth();
-  const metadata =
-    sessionClaims &&
-    typeof sessionClaims === "object" &&
-    "metadata" in sessionClaims
-      ? (sessionClaims as { metadata?: { role?: unknown } }).metadata
-      : undefined;
-  return metadata && typeof metadata === "object" && "role" in metadata
-    ? metadata.role === role
-    : false;
-};
+/**
+ * Get the role of the currently authenticated user
+ * @returns User's role or "manager" as default if not set
+ */
+export async function getRole(): Promise<Role | null> {
+  const user = await currentUser();
 
-export const getRole = async (): Promise<Role> => {
-  const { sessionClaims } = await auth();
-
-  const metadata =
-    sessionClaims &&
-    typeof sessionClaims === "object" &&
-    "metadata" in sessionClaims
-      ? (sessionClaims as { metadata?: { role?: unknown } }).metadata
-      : undefined;
-
-  const role = metadata?.role;
-
-  if (role === "admin" || role === "manager" || role === "staff") {
-    return role;
+  if (!user) {
+    return null;
   }
 
-  return "staff"; // hoặc "manager" tùy hệ thống
-};
+  // Get role from publicMetadata, default to "manager" if not set
+  const role = user.publicMetadata?.role as Role | undefined;
+
+  // Log for debugging (will show in server console)
+  console.log("[getRole] User ID:", user.id);
+  console.log("[getRole] Public Metadata:", user.publicMetadata);
+  console.log("[getRole] Role:", role);
+
+  // Return role or default to "manager" for authenticated users
+  return role || "manager";
+}

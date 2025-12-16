@@ -1,22 +1,24 @@
-import { Gender, Role } from "@/types/enum";
+import { BranchStatus, Gender } from "@/types/enum";
+import { ROLE } from "@/types/constant";
 import { Staff } from "@/types/staff";
 
 // mock/staff.ts
 export const mockStaffs: Staff[] = [
   {
-    id: "user_36TVS4yaVemSzHFlKszytfwqlLj",
+    id: "user_36tGqcXsWnZDwGrLLBq6oGe0cgk",
     branch: {
       id: "branch_hn_01",
       name: "Cửa hàng cầm đồ Hà Nội - Cầu Giấy",
       address: "123 Trần Duy Hưng",
       phone: "0909 111 222",
-      wardId: "1",
-      provinceId: "4",
-      status: "active",
+      ward: { id: "1", label: "Phường Dịch Vọng Hậu" },
+      province: { id: "4", label: "Hà Nội" },
+      status: BranchStatus.ACTIVE,
+      createdAt: "2024-01-01",
     },
     fullName: "manager1",
-    email: "manager@gm.com",
-    role: Role.MANAGER,
+    email: "manager1+clerk_test@gm.com",
+    role: ROLE.MANAGER,
     gender: Gender.MALE,
     dob: "16/03/2005",
     cccd: "123456789",
@@ -31,13 +33,14 @@ export const mockStaffs: Staff[] = [
       name: "Cửa hàng cầm đồ Hà Nội - Cầu Giấy",
       address: "123 Trần Duy Hưng",
       phone: "0909 111 222",
-      wardId: "1",
-      provinceId: "4",
-      status: "active",
+      ward: { id: "1", label: "Phường Dịch Vọng Hậu" },
+      province: { id: "4", label: "Hà Nội" },
+      status: BranchStatus.ACTIVE,
+      createdAt: "2024-01-01",
     },
     fullName: "staff1",
     email: "staff@gm.com",
-    role: Role.MANAGER,
+    role: ROLE.MANAGER,
     gender: Gender.FEMALE,
     dob: "16/03/2005",
     cccd: "123456789",

@@ -1,0 +1,405 @@
+// mock-data/contracts.ts
+import { loan } from "@/types/asset";
+import { mockCustomer } from "./customer";
+import { mockAssets, mockAssetType } from "./asset";
+import { mockwarehouses } from "./warehouse";
+import { AssetStatus } from "@/types/enum";
+
+// Comprehensive list of pawn contracts (loans)
+export const mockPawnContracts: loan[] = [
+  {
+    id: "l1",
+    loanDate: "2024-12-01",
+    totalLoan: 50000000,
+    interestPeriod: 6,
+    interestRate: 1.5,
+    numberPayment: 6,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a1",
+      name: "Wave RSX",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v1", assetId: "a1", assetTypeField: "a", value: "30B1-12345" },
+        { id: "v2", assetId: "a1", assetTypeField: "b", value: "KH123456789" },
+        { id: "v3", assetId: "a1", assetTypeField: "c", value: "SM123456" },
+      ],
+    },
+  },
+  {
+    id: "l2",
+    loanDate: "2024-12-05",
+    totalLoan: 10000000,
+    interestPeriod: 12,
+    interestRate: 2,
+    numberPayment: 12,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a2",
+      name: "iPhone 14",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v4",
+          assetId: "a2",
+          assetTypeField: "d",
+          value: "356789012345678",
+        },
+        { id: "v5", assetId: "a2", assetTypeField: "e", value: "123456" },
+        { id: "v6", assetId: "a2", assetTypeField: "f", value: "SM987654" },
+      ],
+    },
+  },
+  {
+    id: "l3",
+    loanDate: "2024-11-20",
+    totalLoan: 30000000,
+    interestPeriod: 9,
+    interestRate: 1.8,
+    numberPayment: 9,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a3",
+      name: "SH Mode 2023",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v7", assetId: "a3", assetTypeField: "a", value: "30B2-67890" },
+        { id: "v8", assetId: "a3", assetTypeField: "b", value: "KH987654321" },
+        { id: "v9", assetId: "a3", assetTypeField: "c", value: "SM654321" },
+      ],
+    },
+  },
+  {
+    id: "l4",
+    loanDate: "2024-12-10",
+    totalLoan: 15000000,
+    interestPeriod: 6,
+    interestRate: 2.0,
+    numberPayment: 6,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a4",
+      name: "Samsung Galaxy S23",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v10",
+          assetId: "a4",
+          assetTypeField: "d",
+          value: "357123456789012",
+        },
+        { id: "v11", assetId: "a4", assetTypeField: "e", value: "654321" },
+        { id: "v12", assetId: "a4", assetTypeField: "f", value: "SM111222" },
+      ],
+    },
+  },
+  {
+    id: "l5",
+    loanDate: "2024-11-15",
+    totalLoan: 80000000,
+    interestPeriod: 12,
+    interestRate: 1.5,
+    numberPayment: 12,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a5",
+      name: "Vision 2024",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v13", assetId: "a5", assetTypeField: "a", value: "30C1-11111" },
+        { id: "v14", assetId: "a5", assetTypeField: "b", value: "KH111222333" },
+        { id: "v15", assetId: "a5", assetTypeField: "c", value: "SM333444" },
+      ],
+    },
+  },
+  {
+    id: "l6",
+    loanDate: "2024-12-12",
+    totalLoan: 25000000,
+    interestPeriod: 6,
+    interestRate: 2.2,
+    numberPayment: 6,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a6",
+      name: "iPhone 13 Pro",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v16",
+          assetId: "a6",
+          assetTypeField: "d",
+          value: "358987654321098",
+        },
+        { id: "v17", assetId: "a6", assetTypeField: "e", value: "789012" },
+        { id: "v18", assetId: "a6", assetTypeField: "f", value: "SM555666" },
+      ],
+    },
+  },
+  {
+    id: "l7",
+    loanDate: "2024-11-25",
+    totalLoan: 45000000,
+    interestPeriod: 9,
+    interestRate: 1.7,
+    numberPayment: 9,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a7",
+      name: "Air Blade 2023",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v19", assetId: "a7", assetTypeField: "a", value: "30D1-22222" },
+        { id: "v20", assetId: "a7", assetTypeField: "b", value: "KH444555666" },
+        { id: "v21", assetId: "a7", assetTypeField: "c", value: "SM777888" },
+      ],
+    },
+  },
+  {
+    id: "l8",
+    loanDate: "2024-12-08",
+    totalLoan: 12000000,
+    interestPeriod: 6,
+    interestRate: 2.5,
+    numberPayment: 6,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a8",
+      name: "iPad Air 5",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v22",
+          assetId: "a8",
+          assetTypeField: "d",
+          value: "359876543210987",
+        },
+        { id: "v23", assetId: "a8", assetTypeField: "e", value: "345678" },
+        { id: "v24", assetId: "a8", assetTypeField: "f", value: "SM999000" },
+      ],
+    },
+  },
+  {
+    id: "l9",
+    loanDate: "2024-11-10",
+    totalLoan: 60000000,
+    interestPeriod: 12,
+    interestRate: 1.6,
+    numberPayment: 12,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a9",
+      name: "Winner X 2024",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v25", assetId: "a9", assetTypeField: "a", value: "30E1-33333" },
+        { id: "v26", assetId: "a9", assetTypeField: "b", value: "KH777888999" },
+        { id: "v27", assetId: "a9", assetTypeField: "c", value: "SM111333" },
+      ],
+    },
+  },
+  {
+    id: "l10",
+    loanDate: "2024-12-14",
+    totalLoan: 18000000,
+    interestPeriod: 6,
+    interestRate: 2.3,
+    numberPayment: 6,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a10",
+      name: "MacBook Air M2",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v28",
+          assetId: "a10",
+          assetTypeField: "d",
+          value: "360765432109876",
+        },
+        { id: "v29", assetId: "a10", assetTypeField: "e", value: "901234" },
+        { id: "v30", assetId: "a10", assetTypeField: "f", value: "SM222444" },
+      ],
+    },
+  },
+  {
+    id: "l11",
+    loanDate: "2024-11-28",
+    totalLoan: 35000000,
+    interestPeriod: 9,
+    interestRate: 1.9,
+    numberPayment: 9,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a11",
+      name: "Lead 2024",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v31", assetId: "a11", assetTypeField: "a", value: "30F1-44444" },
+        {
+          id: "v32",
+          assetId: "a11",
+          assetTypeField: "b",
+          value: "KH000111222",
+        },
+        { id: "v33", assetId: "a11", assetTypeField: "c", value: "SM555777" },
+      ],
+    },
+  },
+  {
+    id: "l12",
+    loanDate: "2024-12-03",
+    totalLoan: 22000000,
+    interestPeriod: 6,
+    interestRate: 2.1,
+    numberPayment: 6,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a12",
+      name: "iPhone 15",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v34",
+          assetId: "a12",
+          assetTypeField: "d",
+          value: "361654321098765",
+        },
+        { id: "v35", assetId: "a12", assetTypeField: "e", value: "567890" },
+        { id: "v36", assetId: "a12", assetTypeField: "f", value: "SM888999" },
+      ],
+    },
+  },
+  {
+    id: "l13",
+    loanDate: "2024-11-05",
+    totalLoan: 55000000,
+    interestPeriod: 12,
+    interestRate: 1.55,
+    numberPayment: 12,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a13",
+      name: "Exciter 150 2024",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v37", assetId: "a13", assetTypeField: "a", value: "30G1-55555" },
+        {
+          id: "v38",
+          assetId: "a13",
+          assetTypeField: "b",
+          value: "KH333444555",
+        },
+        { id: "v39", assetId: "a13", assetTypeField: "c", value: "SM666888" },
+      ],
+    },
+  },
+  {
+    id: "l14",
+    loanDate: "2024-12-11",
+    totalLoan: 28000000,
+    interestPeriod: 9,
+    interestRate: 2.0,
+    numberPayment: 9,
+    customer: mockCustomer[1],
+    asset: {
+      id: "a14",
+      name: "Samsung Tab S9",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[1],
+      warehouses: mockwarehouses[1],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        {
+          id: "v40",
+          assetId: "a14",
+          assetTypeField: "d",
+          value: "362543210987654",
+        },
+        { id: "v41", assetId: "a14", assetTypeField: "e", value: "234567" },
+        { id: "v42", assetId: "a14", assetTypeField: "f", value: "SM777999" },
+      ],
+    },
+  },
+  {
+    id: "l15",
+    loanDate: "2024-11-18",
+    totalLoan: 40000000,
+    interestPeriod: 9,
+    interestRate: 1.75,
+    numberPayment: 9,
+    customer: mockCustomer[0],
+    asset: {
+      id: "a15",
+      name: "PCX 160 2024",
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRx49yGlanyAwLALpzN7RXxKhoO7PEdr2UXfQ&s",
+      assetType: mockAssetType[0],
+      warehouses: mockwarehouses[0],
+      status: AssetStatus.PLEDGED,
+      assetValue: [
+        { id: "v43", assetId: "a15", assetTypeField: "a", value: "30H1-66666" },
+        {
+          id: "v44",
+          assetId: "a15",
+          assetTypeField: "b",
+          value: "KH666777888",
+        },
+        { id: "v45", assetId: "a15", assetTypeField: "c", value: "SM000111" },
+      ],
+    },
+  },
+];

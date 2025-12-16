@@ -10,6 +10,7 @@ import { Edit, FileSignature, PlusCircle, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { LoanColumn } from "./column";
 import ContractForm from "./form";
+import { mockPawnContracts } from "@/mock-data/contracts";
 
 const ContractPage = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -62,7 +63,7 @@ const ContractPage = () => {
           </div>
 
           <div className="mt-5">
-            <DataTable columns={LoanColumn} data={[]} />
+            <DataTable columns={LoanColumn} data={mockPawnContracts} />
           </div>
         </div>
       </div>

@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockBranches } from "@/mock-data/branches";
-import { Gender, GENDER_OPTIONS, Role, ROLE_OPTIONS } from "@/types/enum";
+import { Gender, GENDER_OPTIONS } from "@/types/enum";
+import { Role, ROLE, ROLE_OPTIONS } from "@/types/constant";
 import { useUser } from "@clerk/nextjs";
 import { IdCard, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -49,7 +50,7 @@ const EMPTY_STAFF: StaffFormState = {
   id: "",
   email: "nam@gm.com",
   password: "",
-  role: Role.STAFF,
+  role: ROLE.STAFF,
   branchId: "",
 
   fullName: "",
@@ -270,7 +271,7 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                 )}
               />
 
-              {role && role === Role.ADMIN && (
+              {role && role === ROLE.ADMIN && (
                 <>
                   <FormField
                     control={form.control}

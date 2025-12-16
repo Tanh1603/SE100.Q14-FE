@@ -19,7 +19,7 @@ export async function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const user = await currentUser();
   const role = await getRole();
-  const menuItem = await getMenuByRole(role);
+  const menuItem = role ? getMenuByRole(role) : [];
 
   const navUser = user && {
     id: user.id,

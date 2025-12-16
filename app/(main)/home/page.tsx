@@ -16,6 +16,15 @@ import {
   HomeIcon,
   PiggyBank,
 } from "lucide-react";
+import { mockDashboardStats } from "@/mock-data/statistics";
+
+// Helper function to format currency
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+};
 
 const HomePage = () => {
   return (
@@ -39,7 +48,9 @@ const HomePage = () => {
               </CardAction>
             </CardHeader>
             <CardContent>
-              <p className="text-5xl font-bold text-green-500">0</p>
+              <p className="text-5xl font-bold text-green-500">
+                {mockDashboardStats.todayTransactions}
+              </p>
             </CardContent>
           </Card>
           <Card className="w-full">
@@ -53,7 +64,9 @@ const HomePage = () => {
               </CardAction>
             </CardHeader>
             <CardContent>
-              <p className="text-5xl font-bold text-green-500">0</p>
+              <p className="text-5xl font-bold text-green-500">
+                {mockDashboardStats.activeLoanContracts}
+              </p>
             </CardContent>
           </Card>
           <Card className="w-full">
@@ -67,13 +80,17 @@ const HomePage = () => {
               </CardAction>
             </CardHeader>
             <CardContent>
-              <p className="text-5xl font-bold text-green-500">0</p>
+              <p className="text-5xl font-bold text-green-500">
+                {mockDashboardStats.collectedContracts}
+              </p>
             </CardContent>
           </Card>
           <Card className="w-full bg-primary">
             <CardHeader>
               <CardTitle className="text-white">Quỹ tiền còn</CardTitle>
-              <CardDescription></CardDescription>
+              <CardDescription className="text-white/80 text-xs">
+                {formatCurrency(mockDashboardStats.remainingFunds)}
+              </CardDescription>
               <CardAction>
                 <div className="bg-[#7edd94] rounded-3xl p-2">
                   <PiggyBank className="text-white w-10 h-10" />
@@ -81,7 +98,9 @@ const HomePage = () => {
               </CardAction>
             </CardHeader>
             <CardContent>
-              <p className="text-5xl font-bold text-green-500">0</p>
+              <p className="text-4xl font-bold text-white">
+                {(mockDashboardStats.remainingFunds / 1000000).toFixed(0)}M
+              </p>
             </CardContent>
           </Card>
         </div>

@@ -86,29 +86,70 @@ export const AssetColumn = (
   },
 ];
 
-export const LoanColumn: ColumnDef<{ id: string }>[] = [
+import { loan } from "@/types/asset";
+import { AssetStatus } from "@/types/enum";
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(value);
+};
+
+export const LoanColumn: ColumnDef<loan>[] = [
   {
+    accessorKey: "customer.fullName",
     header: "Tên khách hàng",
   },
-
   {
+    accessorKey: "asset.name",
     header: "Tên tài sản",
   },
-
   {
+    accessorKey: "totalLoan",
     header: "Số tiền vay",
+    cell: ({ row }) => formatCurrency(row.getValue("totalLoan")),
   },
-
   {
+    // Placeholder for "Amount Paid" - for now using 0 as per mock data limits
+    id: "amountPaid",
     header: "Số tiền đã trả",
+    cell: () => formatCurrency(0),
   },
   {
+    // Placeholder for "Remaining" - for now using totalLoan
+    id: "remaining",
     header: "Tiền vay còn lại",
+    cell: ({ row }) => formatCurrency(row.original.totalLoan),
   },
   {
+    // Placeholder for "Interest to date"
+    id: "interest",
     header: "Lãi đến hôm nay",
+    cell: ({ row }) => {
+      // Simple mock calculation: 1 month of interest
+      const interest =
+        (row.original.totalLoan * row.original.interestRate) / 100;
+      return formatCurrency(interest);
+    },
   },
   {
+    accessorKey: "asset.status",
     header: "Trạng thái",
+    cell: ({ row }) => {
+      const status = row.original.asset.status;
+      const isPledged = status === AssetStatus.PLEDGED;
+      return (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            isPledged
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {isPledged ? "Đang cầm" : status}
+        </span>
+      );
+    },
   },
 ];
