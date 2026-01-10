@@ -1,3 +1,5 @@
+"use client";
+
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { mockAssetType } from "@/mock-data/asset";
 import { mockwarehouses } from "@/mock-data/warehouse";
 import { AssetTypeFieldEnum } from "@/types/enum";
@@ -26,6 +28,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AssetColumn, AssetColumnDef } from "./column";
+import { Label } from "@/components/ui/label";
 
 type ContractFormProps = {
   initial?: FormState | undefined | null;
@@ -50,6 +53,7 @@ type FormState = {
     assetType: {
       id: string;
       name: string;
+      custodyFee?: number;
       field: {
         id: string;
         label: string; // nhãn ví dụ vàng
@@ -115,34 +119,26 @@ const ContractForm = ({ initial }: ContractFormProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-6xl">
-        <Tabs defaultValue="personalInfo" className="min-h-[350px] flex">
-          <TabsList>
-            <TabsTrigger
-              value="loanInfo"
-              className="cursor-pointer data-[state=active]:text-primary"
-            >
-              <IdCard />
-              Thông tin cho vay
-            </TabsTrigger>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* LEFT COLUMN: LOAN INFO */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <IdCard className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-lg text-gray-800">
+                Thông tin khoản vay
+              </h3>
+            </div>
 
-            <TabsTrigger
-              value="asset"
-              className="cursor-pointer data-[state=active]:text-primary"
-            >
-              <IdCard />
-              Thông tin tài sản thế chấp
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="loanInfo">
-            <div className="flex gap-6 items-center">
-              <div className="grid grid-cols-3 gap-4 flex-1">
+            <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="loanDate"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-2">
                       <FormLabel>
                         Ngày vay<span className="text-red-500">*</span>
                       </FormLabel>
@@ -162,12 +158,21 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                   control={form.control}
                   name="totalLoan"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-2">
                       <FormLabel>
                         Tổng tiền vay<span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập tổng tiền vay" {...field} />
+                        <div className="relative">
+                          <Input
+                            className="pl-10 font-semibold"
+                            placeholder="Nhập tổng tiền vay"
+                            {...field}
+                          />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                            ₫
+                          </span>
+                        </div>
                       </FormControl>
                     </FormItem>
                   )}
@@ -196,24 +201,38 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                 <FormField
                   control={form.control}
                   name="interestRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Lãi suất
-                        <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nhập lãi suất" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const rate = parseFloat(field.value || "0");
+                    const isHighRate = rate > 1.7; // > 20% / year approx 1.66% / month
+
+                    return (
+                      <FormItem>
+                        <FormLabel>
+                          Lãi suất (%/tháng)
+                          <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Nhập lãi suất"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                        {isHighRate && (
+                          <div className="mt-2 text-xs p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                            ⚠️ Lãi suất cao hơn quy định (20%/năm ~ 1.6%/tháng).
+                          </div>
+                        )}
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
                   control={form.control}
                   name="numberPayment"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-2">
                       <FormLabel>
                         Số lần trả
                         <span className="text-red-500">*</span>
@@ -230,13 +249,23 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                 />
               </div>
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="asset">
-            <div className="flex flex-col gap-6">
-              <div className="flex gap-2 items-center">
+          {/* RIGHT COLUMN: ASSET INFO */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                <IdCard className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-lg text-gray-800">
+                Tài sản thế chấp
+              </h3>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border shadow-sm flex flex-col gap-6">
+              <div className="flex gap-4 items-start">
                 <div
-                  className="relative w-50 h-50 rounded-xl border-dashed border-spacing-10 border-gray-400 border-[5px] cursor-pointer flex items-center justify-center"
+                  className="relative w-32 h-32 rounded-xl border-dashed border-2 border-gray-300 hover:border-primary cursor-pointer flex items-center justify-center bg-gray-50 flex-shrink-0 transition-colors"
                   onClick={handleUploadClick}
                 >
                   {image ? (
@@ -244,11 +273,12 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                       src={image}
                       alt="image"
                       fill
-                      className="object-contain"
+                      className="object-contain p-2"
                     />
                   ) : (
-                    <div className="text-gray-500">
-                      <ImageUpIcon className="w-20 h-20 text-primary" />
+                    <div className="flex flex-col items-center gap-1 text-gray-500">
+                      <ImageUpIcon className="w-8 h-8 text-gray-400" />
+                      <span className="text-xs">Tải ảnh</span>
                     </div>
                   )}
 
@@ -261,7 +291,8 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                     className="hidden"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4 flex-1">
+
+                <div className="flex-1 space-y-4">
                   <FormField
                     control={form.control}
                     name="asset.name"
@@ -274,46 +305,6 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                           <Input placeholder="Nhập tên tài sản" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="asset.warehouse"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm">
-                          Kho<span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Select
-                            value={
-                              field.value ? JSON.stringify(field.value) : ""
-                            }
-                            onValueChange={(val) =>
-                              field.onChange(val ? JSON.parse(val) : null)
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Chọn kho" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                              {mockwarehouses.map((w) => (
-                                <SelectItem
-                                  key={w.id}
-                                  value={JSON.stringify({
-                                    id: w.id,
-                                    name: w.name,
-                                  })}
-                                >
-                                  {w.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
                       </FormItem>
                     )}
                   />
@@ -376,54 +367,108 @@ const ContractForm = ({ initial }: ContractFormProps) => {
                       </FormItem>
                     )}
                   />
-
-                  <div className="col-span-3 ">
-                    <h2 className="text-primary mb-2">Thuộc tính tài sản</h2>
-                    <div className="grid gap-2 grid-cols-3">
-                      {selectedAssetType?.field.map((f) => (
-                        <FormField
-                          key={f.id}
-                          control={form.control}
-                          name={`asset.assetType.fieldValues.${f.id}`} // dùng field.id làm key riêng
-                          rules={{ required: f.required }}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
-                                {f.label}
-                                {f.required && (
-                                  <span className="text-red-500">*</span>
-                                )}
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type={
-                                    f.type === AssetTypeFieldEnum.NUMBER
-                                      ? "number"
-                                      : f.type === AssetTypeFieldEnum.DATE
-                                      ? "date"
-                                      : "text"
-                                  }
-                                  placeholder={`Nhập ${f.label}`}
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              <DataTable
-                columns={AssetColumn(handleDeleteAsset)}
-                data={assets}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col item-center">
+                  <Label className="mb-2">Phí giữ (VNĐ)</Label>
+                  <div className="h-10 px-3 py-2 rounded-md border bg-gray-50 text-gray-900 text-sm flex items-center font-medium">
+                    10,000
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="asset.warehouse"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">
+                        Kho<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value ? JSON.stringify(field.value) : ""}
+                          onValueChange={(val) =>
+                            field.onChange(val ? JSON.parse(val) : null)
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn kho" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {mockwarehouses.map((w) => (
+                              <SelectItem
+                                key={w.id}
+                                value={JSON.stringify({
+                                  id: w.id,
+                                  name: w.name,
+                                })}
+                              >
+                                {w.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {selectedAssetType && selectedAssetType.field.length > 0 && (
+                <div className="col-span-1 pt-4 border-t">
+                  <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                    Thuộc tính chi tiết
+                  </h2>
+                  <div className="grid gap-4 grid-cols-2">
+                    {selectedAssetType.field.map((f) => (
+                      <FormField
+                        key={f.id}
+                        control={form.control}
+                        name={`asset.assetType.fieldValues.${f.id}`}
+                        rules={{ required: f.required }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">
+                              {f.label}
+                              {f.required && (
+                                <span className="text-red-500">*</span>
+                              )}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                className="h-9"
+                                type={
+                                  f.type === AssetTypeFieldEnum.NUMBER
+                                    ? "number"
+                                    : f.type === AssetTypeFieldEnum.DATE
+                                    ? "date"
+                                    : "text"
+                                }
+                                placeholder={`Nhập ${f.label}`}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t">
+                <DataTable
+                  columns={AssetColumn(handleDeleteAsset)}
+                  data={assets}
+                />
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
         <div className="flex justify-end">
           <Button
             variant="secondary"

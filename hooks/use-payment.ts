@@ -19,6 +19,7 @@ import {
 interface UsePaymentsState {
   data: Payment[];
   meta: PaymentListResponse["meta"] | null;
+  stats?: PaymentListResponse["stats"];
   isLoading: boolean;
   error: string | null;
 }
@@ -54,6 +55,7 @@ export function usePayments(initialParams: PaymentListParams = {}) {
       setState({
         data: response.data,
         meta: response.meta,
+        stats: response.stats,
         isLoading: false,
         error: null,
       });

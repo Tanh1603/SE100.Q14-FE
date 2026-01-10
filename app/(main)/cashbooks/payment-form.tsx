@@ -43,6 +43,7 @@ import {
   Loader2,
   Wallet,
   BadgeDollarSign,
+  Calendar,
 } from "lucide-react";
 
 // Form data type
@@ -53,26 +54,39 @@ interface PaymentFormData {
   paymentType: PaymentType;
   referenceCode?: string;
   notes?: string;
+  transactionDate: string;
 }
 
 type PaymentFormProps = {
   onSuccess?: (payment: Payment) => void;
   onCancel?: () => void;
+  initialLoanId?: string;
+  initialPaymentType?: PaymentType;
 };
 
-const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
+const PaymentForm = ({
+  onSuccess,
+  onCancel,
+  initialLoanId,
+  initialPaymentType = "PERIODIC",
+}: PaymentFormProps) => {
   const { data: loans, isLoading: loansLoading } = useLoans();
   const { execute, isLoading: submitting, error, result } = useCreatePayment();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const form = useForm<PaymentFormData>({
     defaultValues: {
-      loanId: "",
+      loanId: initialLoanId || "",
       amount: 0,
       paymentMethod: "CASH",
-      paymentType: "PERIODIC",
+      paymentType: initialPaymentType,
       referenceCode: "",
       notes: "",
+      transactionDate: (() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+      })(),
     },
   });
 
@@ -117,6 +131,7 @@ const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
       paymentType: data.paymentType,
       referenceCode: data.referenceCode || undefined,
       notes: data.notes || undefined,
+      transactionDate: new Date(data.transactionDate).toISOString(),
     };
 
     const payment = await execute(paymentData);
@@ -229,18 +244,22 @@ const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
                           field.onChange("");
                         }
                       }}
-                      onFocus={() => setShowLoanDropdown(true)}
+                      onFocus={() => {
+                        if (!initialLoanId) setShowLoanDropdown(true);
+                      }}
                       onBlur={() => {
                         // Delay to allow click on dropdown item
                         setTimeout(() => setShowLoanDropdown(false), 200);
                       }}
-                      disabled={loansLoading}
-                      className="pr-10"
+                      disabled={loansLoading || !!initialLoanId}
+                      className={`pr-10 ${
+                        initialLoanId ? "bg-gray-100 font-medium" : ""
+                      }`}
                     />
                     {loansLoading && (
                       <Spinner className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4" />
                     )}
-                    {selectedLoan && !loansLoading && (
+                    {selectedLoan && !loansLoading && !initialLoanId && (
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -256,6 +275,7 @@ const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
                     {/* Dropdown results */}
                     {showLoanDropdown &&
                       !selectedLoan &&
+                      !initialLoanId &&
                       filteredLoans.length > 0 && (
                         <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
                           {filteredLoans.slice(0, 10).map((loan) => (
@@ -286,6 +306,7 @@ const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
 
                     {/* No results message */}
                     {showLoanDropdown &&
+                      !initialLoanId &&
                       loanSearch.trim() &&
                       filteredLoans.length === 0 &&
                       !loansLoading && (
@@ -332,6 +353,26 @@ const PaymentForm = ({ onSuccess, onCancel }: PaymentFormProps) => {
                     {formatCurrency(field.value)}
                   </p>
                 )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Transaction Date */}
+          <FormField
+            control={form.control}
+            name="transactionDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Ngày giao dịch <span className="text-red-500">*</span>
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input type="datetime-local" className="pl-10" {...field} />
+                  </div>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

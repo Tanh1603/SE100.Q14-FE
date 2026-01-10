@@ -145,6 +145,19 @@ export async function getPayments(
         startIndex + limit
       );
 
+      // Calculate stats
+      const totalMoney = mockPayments.reduce((acc, p) => {
+        return acc + (p.flow === "IN" ? p.amount : -p.amount);
+      }, 0);
+
+      const totalIncome = filteredPayments.reduce((acc, p) => {
+        return acc + (p.flow === "IN" ? p.amount : 0);
+      }, 0);
+
+      const totalExpense = filteredPayments.reduce((acc, p) => {
+        return acc + (p.flow === "OUT" ? p.amount : 0);
+      }, 0);
+
       resolve({
         data: paginatedPayments,
         meta: {
@@ -152,6 +165,11 @@ export async function getPayments(
           totalPages: Math.ceil(filteredPayments.length / limit),
           currentPage: page,
           limit,
+        },
+        stats: {
+          totalMoney,
+          totalIncome,
+          totalExpense,
         },
       });
     }, 300);
@@ -217,6 +235,9 @@ export async function createPayment(
       // Create mock payment
       const loan = mockLoans.find((l) => l.id === data.loanId);
       const now = new Date().toISOString();
+      const paidAt = data.transactionDate
+        ? new Date(data.transactionDate).toISOString()
+        : now;
 
       // Mock waterfall allocation
       const interestAmount = Math.floor(data.amount * 0.2);
@@ -226,11 +247,12 @@ export async function createPayment(
         id: `pay-${Date.now()}`,
         loanId: data.loanId,
         amount: data.amount,
+        flow: "IN",
         paymentMethod: data.paymentMethod,
         paymentType: data.paymentType,
         referenceCode: data.referenceCode || `RC-${Date.now()}`,
         notes: data.notes,
-        paidAt: now,
+        paidAt: paidAt,
         createdAt: now,
         updatedAt: now,
         allocations: [

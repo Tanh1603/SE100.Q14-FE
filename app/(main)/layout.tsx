@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { GlobalCommandListener } from "@/components/global/global-command-listener";
 import React from "react";
 
 const MainLayout = ({
@@ -10,7 +11,10 @@ const MainLayout = ({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="w-full bg-gray-100">{children}</main>
+      <GlobalCommandListener />
+      <SidebarInset>
+        <div className="w-full h-full bg-gray-50/50">{children}</div>
+      </SidebarInset>
     </SidebarProvider>
   );
 };

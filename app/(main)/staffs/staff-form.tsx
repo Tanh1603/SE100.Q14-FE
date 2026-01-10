@@ -18,11 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockBranches } from "@/mock-data/branches";
 import { Gender, GENDER_OPTIONS } from "@/types/enum";
 import { Role, ROLE, ROLE_OPTIONS } from "@/types/constant";
-import { useUser } from "@clerk/nextjs";
 import { IdCard, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
 
@@ -67,9 +65,6 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
     defaultValues: initialStaff || EMPTY_STAFF,
   });
 
-  const { user } = useUser();
-  const role = user?.publicMetadata.role as Role;
-
   // handle locations
 
   // handle submit
@@ -79,28 +74,18 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-6xl">
-        <Tabs defaultValue="personalInfo" className="min-h-[350px] flex">
-          <TabsList>
-            <TabsTrigger
-              value="account"
-              className="cursor-pointer data-[state=active]:text-primary"
-            >
-              <IdCard />
-              Tài khoản đăng nhập
-            </TabsTrigger>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
+        <div className="space-y-8">
+          {/* SECTION: PERSONAL INFO */}
+          <div className="bg-white p-6 rounded-lg border shadow-sm space-y-6">
+            <div className="flex items-center gap-2 border-b pb-2">
+              <Info className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg text-gray-800">
+                Thông tin cá nhân
+              </h3>
+            </div>
 
-            <TabsTrigger
-              value="info"
-              className="cursor-pointer data-[state=active]:text-primary"
-            >
-              <Info />
-              Thông tin cá nhân
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="info">
-            <div className="grid grid-cols-3 gap-4 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="fullName"
@@ -134,6 +119,35 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
 
               <FormField
                 control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Giới tính<span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Select value={field.value}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Giới tính" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {GENDER_OPTIONS.map((item, index) => (
+                              <SelectItem key={index} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
@@ -158,35 +172,6 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                     <FormControl>
                       <Input placeholder="Nhập số CCCD" {...field} />
                     </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Giới tính<span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Select value={field.value}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Giới tính" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {GENDER_OPTIONS.map((item, index) => (
-                              <SelectItem key={index} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -232,10 +217,18 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                 />
               )}
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="account">
-            <div className="grid grid-cols-2 gap-4 flex-1">
+          {/* SECTION: LOGIN ACCOUNT */}
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              <IdCard className="w-5 h-5 text-gray-600" />
+              <h3 className="font-semibold text-lg text-gray-800">
+                Tài khoản đăng nhập
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="email"
@@ -271,74 +264,13 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                 )}
               />
 
-              {role && role === ROLE.ADMIN && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="branchId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Tình trạng<span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Select value={field.value}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Cửa hàng" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                {mockBranches.map((item, index) => (
-                                  <SelectItem key={index} value={item.id}>
-                                    {item.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Quyền<span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Select value={field.value}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Quyền" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                {ROLE_OPTIONS.map((item, index) => (
-                                  <SelectItem key={index} value={item.value}>
-                                    {item.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              {/* <FormField
+              <FormField
                 control={form.control}
                 name="branchId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Tình trạng<span className="text-red-500">*</span>
+                      Cửa hàng làm việc<span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <Select value={field.value}>
@@ -347,7 +279,7 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            {branches.map((item, index) => (
+                            {mockBranches.map((item, index) => (
                               <SelectItem key={index} value={item.id}>
                                 {item.name}
                               </SelectItem>
@@ -367,7 +299,7 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Quyền<span className="text-red-500">*</span>
+                      Phân quyền<span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <Select value={field.value}>
@@ -388,10 +320,10 @@ const StaffForm = ({ initialStaff }: StaffFormProps) => {
                     <FormMessage />
                   </FormItem>
                 )}
-              /> */}
+              />
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
         <div className="flex justify-end">
           <Button type="submit">Xác nhận</Button>
         </div>

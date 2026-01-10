@@ -28,9 +28,18 @@ export function NavItem({ items }: { items: MenuItem[] }) {
         {items.map((item) => {
           const Icon = iconMap[item.icon as keyof typeof iconMap];
           const hasSubmenu = item.items && item.items.length > 0;
+
+          // Improved active state detection:
+          // 1. Exact match
+          // 2. Parent path match (e.g. /contracts/create matches /contracts)
+          // 3. Submenu item match
           const isActive =
             pathname === item.href ||
-            item.items?.some((i) => pathname.startsWith(i.url));
+            (item.href !== "/" && pathname.startsWith(item.href + "/")) ||
+            (item.items
+              ? item.items.some((i) => pathname.startsWith(i.url))
+              : false);
+
           return !hasSubmenu ? (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -52,22 +61,37 @@ export function NavItem({ items }: { items: MenuItem[] }) {
             <Collapsible
               key={item.title}
               asChild
-              defaultOpen={item.isActive}
+              defaultOpen={item.isActive || isActive}
               className="group/collapsible"
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
-                    {item.icon && <Icon />}
-                    <span>{item.title}</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  <SidebarMenuButton tooltip={item.title} isActive={isActive}>
+                    {item.icon && (
+                      <Icon
+                        className={isActive ? "text-[#056569]" : "text-white"}
+                      />
+                    )}
+                    <span
+                      className={isActive ? "text-[#056569]" : "text-white"}
+                    >
+                      {item.title}
+                    </span>
+                    <ChevronRight
+                      className={`ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 ${
+                        isActive ? "text-[#056569]" : "text-white"
+                      }`}
+                    />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname.startsWith(subItem.url)}
+                        >
                           <a href={subItem.url}>
                             <span>{subItem.title}</span>
                           </a>

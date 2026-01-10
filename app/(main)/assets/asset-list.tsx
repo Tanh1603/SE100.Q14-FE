@@ -3,6 +3,7 @@ import { Asset } from "@/types/asset";
 import Image from "next/image";
 import { ASSET_STATUS_OPTIONS, AssetStatusColor } from "@/types/enum"; // object màu trạng thái
 import React from "react";
+import { ShieldAlert } from "lucide-react";
 
 type Props = {
   data: Asset[];
@@ -36,6 +37,25 @@ const AssetCardList = ({ onSelect, data }: Props) => {
                     )?.label
                   }
                 </span>
+
+                {/* Suspicious Report Button */}
+                <button
+                  className="absolute top-3 left-3 bg-white/80 p-1.5 rounded-full hover:bg-white text-gray-500 hover:text-red-600 transition-colors shadow-sm"
+                  title="Báo cáo nghi vấn (Công an)"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const reason = window.prompt(
+                      "Nhập lý do nghi vấn (VD: Số khung bị đục, Tài sản trộm cắp):"
+                    );
+                    if (reason) {
+                      alert(
+                        `Đã báo cáo tài sản "${asset.name}" là nghi vấn!\nLý do: ${reason}\n(Mock Data Updated)`
+                      );
+                    }
+                  }}
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Content */}

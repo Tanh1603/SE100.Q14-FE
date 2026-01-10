@@ -3,7 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { AssetTypeFieldEnum } from "@/types/enum";
 import { ColumnDef } from "@tanstack/react-table";
-import { LucideImageOff, Trash2 } from "lucide-react";
+import {
+  LucideImageOff,
+  Trash2,
+  Banknote,
+  Eye,
+  History as HistoryIcon,
+} from "lucide-react";
 import Image from "next/image";
 
 export type AssetColumnDef = {
@@ -96,41 +102,112 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+import { useUser } from "@clerk/nextjs";
+import { Role } from "@/types/constant";
+
+const LoanActions = ({ row }: { row: any }) => {
+  const { user } = useUser();
+  const role = (user?.publicMetadata?.role as Role) || "staff";
+  const canRefinance = ["admin", "manager"].includes(role);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 px-2"
+        title="Xem chi tiết"
+      >
+        <Eye className="w-4 h-4 text-gray-500" />
+      </Button>
+      <Button
+        size="sm"
+        variant="secondary"
+        className="h-8 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+        onClick={() => {
+          const event = new CustomEvent("quick-pay", {
+            detail: {
+              loanId: (row.original as any).contractNumber || "HD-NEW",
+              amount:
+                (row.original.totalLoan * row.original.interestRate) / 100,
+            },
+          });
+          window.dispatchEvent(event);
+        }}
+      >
+        <Banknote className="w-4 h-4 mr-1" /> Thu lãi
+      </Button>
+
+      {canRefinance && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+          title="Gia hạn hợp đồng (Chỉ quản lý)"
+          onClick={() => {
+            const event = new CustomEvent("refinance-loan", {
+              detail: {
+                id: (row.original as any).contractNumber || "HD-NEW",
+                customerName: row.original.customer.fullName,
+                amount: row.original.totalLoan,
+                maturityDate: (row.original as any).endDate, // Assuming endDate exists or null
+                interestRate: row.original.interestRate,
+              },
+            });
+            window.dispatchEvent(event);
+          }}
+        >
+          <HistoryIcon className="w-4 h-4 mr-1" /> Gia hạn
+        </Button>
+      )}
+    </div>
+  );
+};
+
 export const LoanColumn: ColumnDef<loan>[] = [
+  // ... previous columns ...
+  {
+    accessorKey: "contractNumber",
+    header: "Mã HĐ",
+    // Fix: cast to any to avoid TS error if contractNumber is missing in type definition
+    cell: ({ row }) => (
+      <span className="font-mono font-medium">
+        {(row.original as any).contractNumber || "---"}
+      </span>
+    ),
+  },
   {
     accessorKey: "customer.fullName",
     header: "Tên khách hàng",
+    cell: ({ row }) => (
+      <span className="font-semibold">{row.original.customer.fullName}</span>
+    ),
   },
   {
     accessorKey: "asset.name",
     header: "Tên tài sản",
+    cell: (info) => info.getValue() as string, // Simplification
   },
   {
     accessorKey: "totalLoan",
     header: "Số tiền vay",
-    cell: ({ row }) => formatCurrency(row.getValue("totalLoan")),
-  },
-  {
-    // Placeholder for "Amount Paid" - for now using 0 as per mock data limits
-    id: "amountPaid",
-    header: "Số tiền đã trả",
-    cell: () => formatCurrency(0),
-  },
-  {
-    // Placeholder for "Remaining" - for now using totalLoan
-    id: "remaining",
-    header: "Tiền vay còn lại",
-    cell: ({ row }) => formatCurrency(row.original.totalLoan),
+    cell: ({ row }) => (
+      <span className="text-primary font-bold">
+        {formatCurrency(row.getValue("totalLoan"))}
+      </span>
+    ),
   },
   {
     // Placeholder for "Interest to date"
     id: "interest",
-    header: "Lãi đến hôm nay",
+    header: "Lãi tạm tính",
     cell: ({ row }) => {
       // Simple mock calculation: 1 month of interest
       const interest =
         (row.original.totalLoan * row.original.interestRate) / 100;
-      return formatCurrency(interest);
+      return (
+        <span className="text-orange-600">{formatCurrency(interest)}</span>
+      );
     },
   },
   {
@@ -143,13 +220,18 @@ export const LoanColumn: ColumnDef<loan>[] = [
         <span
           className={`px-2 py-1 rounded-full text-xs font-semibold ${
             isPledged
-              ? "bg-blue-100 text-blue-800"
-              : "bg-gray-100 text-gray-800"
+              ? "bg-blue-100 text-blue-800 border border-blue-200"
+              : "bg-gray-100 text-gray-800 border border-gray-200"
           }`}
         >
           {isPledged ? "Đang cầm" : status}
         </span>
       );
     },
+  },
+  {
+    id: "actions",
+    header: "Thao tác",
+    cell: ({ row }) => <LoanActions row={row} />,
   },
 ];

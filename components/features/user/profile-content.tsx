@@ -1,11 +1,11 @@
-import { mockStaffs } from "@/mock-data/staff";
+import { mockStaff } from "@/mock-data/staff";
 
 type ProfileContentProps = {
   userId: string;
 };
 
 export function ProfileContent({ userId }: ProfileContentProps) {
-  const staff = mockStaffs.find((s) => s.id === userId);
+  const staff = mockStaff.find((s) => s.id === userId);
 
   if (!staff) return <div>Không tìm thấy thông tin nhân viên</div>;
 

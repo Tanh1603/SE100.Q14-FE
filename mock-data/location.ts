@@ -1,4 +1,4 @@
-export const locations = [
+export const mockLocations = [
   {
     id: "1",
     label: "Hà Nội",

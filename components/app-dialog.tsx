@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 type AppDialogProps = {
   open?: boolean;
@@ -16,6 +17,7 @@ type AppDialogProps = {
   title: string;
   description?: string;
   children: React.ReactNode;
+  contentClassName?: string;
 };
 
 export function AppDialog({
@@ -25,13 +27,17 @@ export function AppDialog({
   title,
   description,
   children,
+  contentClassName,
 }: AppDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
       <DialogContent
-        className="sm:max-w-none w-fit"
+        className={cn(
+          "max-w-[95vw] sm:max-w-lg md:max-w-xl w-full max-h-[90vh] overflow-y-auto",
+          contentClassName
+        )}
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
@@ -39,7 +45,7 @@ export function AppDialog({
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div>{children}</div>
+        <div className="py-1">{children}</div>
       </DialogContent>
     </Dialog>
   );

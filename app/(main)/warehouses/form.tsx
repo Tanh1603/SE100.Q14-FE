@@ -1,3 +1,5 @@
+"use client";
+
 /* eslint-disable react-hooks/incompatible-library */
 import { Button } from "@/components/ui/button";
 import {
@@ -9,9 +11,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { locations } from "@/mock-data/location";
+import { mockLocations } from "@/mock-data/location";
 import { WAREHOUSE_OPTIONS, WarehouseStatus } from "@/types/enum";
 
 import { IdCard } from "lucide-react";
@@ -40,12 +49,12 @@ const WarehouseForm = ({ initial }: WarehouseProps) => {
   };
 
   const provinceId = form.watch("provinceId");
-  const selectedProvince = locations.find((p) => p.id === provinceId);
+  const selectedProvince = mockLocations.find((p) => p.id === provinceId);
   const wards = selectedProvince?.wards ?? [];
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-6xl">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
         <Tabs defaultValue="personalInfo" className="min-h-[350px] flex">
           <TabsList>
             <TabsTrigger
@@ -59,7 +68,7 @@ const WarehouseForm = ({ initial }: WarehouseProps) => {
 
           <TabsContent value="info">
             <div className="flex gap-6 items-center">
-              <div className="grid grid-cols-3 gap-4 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
                 <FormField
                   control={form.control}
                   name="name"
@@ -112,7 +121,7 @@ const WarehouseForm = ({ initial }: WarehouseProps) => {
                           </SelectTrigger>
 
                           <SelectContent>
-                            {locations.map((item) => (
+                            {mockLocations.map((item) => (
                               <SelectItem key={item.id} value={item.id}>
                                 {item.label}
                               </SelectItem>

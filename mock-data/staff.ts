@@ -3,7 +3,7 @@ import { ROLE } from "@/types/constant";
 import { Staff } from "@/types/staff";
 
 // mock/staff.ts
-export const mockStaffs: Staff[] = [
+export const mockStaff: Staff[] = [
   {
     id: "user_36tGqcXsWnZDwGrLLBq6oGe0cgk",
     branch: {

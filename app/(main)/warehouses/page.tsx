@@ -103,6 +103,7 @@ const Page = () => {
         title="Thêm mới kho"
         open={openDialog}
         onOpenChange={() => setOpenDialog(false)}
+        contentClassName="sm:max-w-4xl"
       >
         <WarehouseForm />
       </AppDialog>

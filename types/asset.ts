@@ -27,6 +27,7 @@ export type Asset = {
 export type AssetType = {
   id: string;
   name: string;
+  custodyFee?: number;
   isActive: boolean;
   field: AssetTypeField[];
 };

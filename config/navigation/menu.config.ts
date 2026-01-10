@@ -46,7 +46,7 @@ export const iconMap = {
   assets: Archive,
   cashbook: Wallet,
   statistics: BarChart3,
-  // reports: LineChart,
+  reports: LineChart,
   staff: UserCog,
   branch: Store,
   warehouse: Warehouse,
@@ -95,12 +95,12 @@ export const menuConfig: MenuItem[] = [
   },
 
   // Reports
-  // {
-  //   title: "Báo cáo",
-  //   href: "/reports",
-  //   icon: "reports",
-  //   roles: ["admin", "manager"],
-  // },
+  {
+    title: "Báo cáo",
+    href: "/reports",
+    icon: "reports",
+    roles: ["admin", "manager"],
+  },
 
   // Staff Management
   {

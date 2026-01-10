@@ -116,7 +116,10 @@ export enum PaymentTypeEnum {
   EARLY = "EARLY",
   PAYOFF = "PAYOFF",
   LATE_FEE = "LATE_FEE",
-  DISBURSEMENT = "DISBURSEMENT", // TODO: Auto-created when admin approves contract
+  DISBURSEMENT = "DISBURSEMENT",
+  LIQUIDATION = "LIQUIDATION",
+  OTHER_INCOME = "OTHER_INCOME",
+  OTHER_EXPENSE = "OTHER_EXPENSE",
 }
 
 export const PAYMENT_TYPE_OPTIONS = [
@@ -125,6 +128,9 @@ export const PAYMENT_TYPE_OPTIONS = [
   { label: "Tất toán", value: PaymentTypeEnum.PAYOFF },
   { label: "Phí trễ hạn", value: PaymentTypeEnum.LATE_FEE },
   { label: "Giải ngân", value: PaymentTypeEnum.DISBURSEMENT },
+  { label: "Thanh lý tài sản", value: PaymentTypeEnum.LIQUIDATION },
+  { label: "Thu khác", value: PaymentTypeEnum.OTHER_INCOME },
+  { label: "Chi khác", value: PaymentTypeEnum.OTHER_EXPENSE },
 ];
 
 export const PaymentTypeColor: Record<PaymentTypeEnum, string> = {
@@ -133,6 +139,9 @@ export const PaymentTypeColor: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.PAYOFF]: "bg-green-100 text-green-800",
   [PaymentTypeEnum.LATE_FEE]: "bg-red-100 text-red-800",
   [PaymentTypeEnum.DISBURSEMENT]: "bg-orange-100 text-orange-800",
+  [PaymentTypeEnum.LIQUIDATION]: "bg-indigo-100 text-indigo-800",
+  [PaymentTypeEnum.OTHER_INCOME]: "bg-teal-100 text-teal-800",
+  [PaymentTypeEnum.OTHER_EXPENSE]: "bg-gray-100 text-gray-800",
 };
 
 // Payment Component (for allocation display)

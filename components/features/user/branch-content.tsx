@@ -1,5 +1,5 @@
 import { mockBranches } from "@/mock-data/branches";
-import { mockStaffs } from "@/mock-data/staff";
+import { mockStaff } from "@/mock-data/staff";
 import { BranchStatus } from "@/types/enum";
 
 type BranchContentProps = {
@@ -7,7 +7,7 @@ type BranchContentProps = {
 };
 
 export function BranchContent({ userId }: BranchContentProps) {
-  const userStaffs = mockStaffs.filter((s) => s.id === userId);
+  const userStaffs = mockStaff.filter((s) => s.id === userId);
 
   if (userStaffs.length === 0) return <div>Không có chi nhánh nào</div>;
 

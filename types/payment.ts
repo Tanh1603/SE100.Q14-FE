@@ -5,7 +5,10 @@ export type PaymentType =
   | "EARLY"
   | "PAYOFF"
   | "LATE_FEE"
-  | "DISBURSEMENT";
+  | "DISBURSEMENT"
+  | "LIQUIDATION"
+  | "OTHER_INCOME"
+  | "OTHER_EXPENSE";
 export type PaymentComponent =
   | "PRINCIPAL"
   | "INTEREST"
@@ -61,6 +64,7 @@ export interface CreatePaymentRequest {
   paymentType: PaymentType;
   referenceCode?: string;
   notes?: string;
+  transactionDate?: string; // ISO String - user selected date
 }
 
 // API Response Types
@@ -71,6 +75,11 @@ export interface PaymentListResponse {
     totalPages: number;
     currentPage: number;
     limit: number;
+  };
+  stats?: {
+    totalMoney: number;
+    totalIncome: number;
+    totalExpense: number;
   };
 }
 

@@ -48,15 +48,15 @@ export const PaymentColumns: ColumnDef<Payment>[] = [
       );
     },
   },
-  {
-    accessorKey: "referenceCode",
-    header: "Mã giao dịch",
-    cell: ({ row }) => (
-      <span className="font-medium text-primary">
-        {row.original.referenceCode || "-"}
-      </span>
-    ),
-  },
+  // {
+  //   accessorKey: "referenceCode",
+  //   header: "Mã giao dịch",
+  //   cell: ({ row }) => (
+  //     <span className="font-medium text-primary">
+  //       {row.original.referenceCode || "-"}
+  //     </span>
+  //   ),
+  // },
   {
     accessorKey: "loan.contractNumber",
     header: "Hợp đồng",

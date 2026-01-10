@@ -6,6 +6,7 @@ export const mockAssetType: AssetType[] = [
   {
     id: "1",
     name: "Xe máy",
+    custodyFee: 100000,
     isActive: true,
     field: [
       {
@@ -32,6 +33,8 @@ export const mockAssetType: AssetType[] = [
   {
     id: "2",
     name: "Điện thoại",
+    custodyFee: 100000,
+
     isActive: true,
     field: [
       {
