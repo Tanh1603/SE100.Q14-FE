@@ -7,24 +7,48 @@ import { Label } from "@radix-ui/react-dropdown-menu";
 import { Edit, FileSignature, PlusCircle, Search, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LoanColumn } from "./column";
-import { mockPawnContracts } from "@/mock-data/contracts";
+// import { mockPawnContracts } from "@/mock-data/contracts"; // REMOVED
 import Link from "next/link";
-
+import { LoanService } from "@/lib/loan.service";
 import { ContractCommandPanel } from "@/components/features/loan/contract-command-panel";
 import { loan } from "@/types/asset";
+import { Spinner } from "@/components/ui/spinner"; // Assuming a Spinner component exists or I'll use text
 
 const ContractPage = () => {
   const [selectedContract, setSelectedContract] = useState<
     (loan & { contractNumber?: string; endDate?: string }) | null
   >(null);
   const [openCommandPanel, setOpenCommandPanel] = useState(false);
+  
+  // State for data fetching
+  const [loans, setLoans] = useState<(loan & { contractNumber: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch data
+  useEffect(() => {
+    const fetchLoans = async () => {
+      try {
+        setIsLoading(true);
+        const response = await LoanService.getAllLoans(1, 100); // Fetch up to 100 for now
+        setLoans(response.data);
+      } catch (err) {
+        console.error("Failed to fetch loans:", err);
+        setError("Không thể tải danh sách hợp đồng.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLoans();
+  }, []);
 
   // Listen for events from Columns (for backward compatibility with quick actions)
   useEffect(() => {
     const handleQuickPay = (e: CustomEvent) => {
       if (e.detail?.loanId) {
         // Find the contract and open command panel
-        const contract = mockPawnContracts.find(
+        const contract = loans.find(
           (c) =>
             (c as { contractNumber?: string }).contractNumber ===
             e.detail.loanId
@@ -38,7 +62,7 @@ const ContractPage = () => {
 
     const handleRefinance = (e: CustomEvent) => {
       if (e.detail?.id) {
-        const contract = mockPawnContracts.find(
+        const contract = loans.find(
           (c) =>
             (c as { contractNumber?: string }).contractNumber === e.detail.id
         );
@@ -59,7 +83,7 @@ const ContractPage = () => {
         handleRefinance as EventListener
       );
     };
-  }, []);
+  }, [loans]); // Dependency on loans
 
   // Handle row click to open command panel
   const handleRowClick = (contract: loan) => {
@@ -114,11 +138,17 @@ const ContractPage = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <DataTable
-              columns={LoanColumn}
-              data={mockPawnContracts}
-              onRowClick={handleRowClick}
-            />
+            {isLoading ? (
+               <div className="flex justify-center p-10">Loading...</div>
+            ) : error ? (
+                <div className="flex justify-center p-10 text-red-500">{error}</div>
+            ) : (
+                <DataTable
+                columns={LoanColumn}
+                data={loans}
+                onRowClick={handleRowClick}
+                />
+            )}
           </div>
         </div>
       </div>
@@ -130,6 +160,7 @@ const ContractPage = () => {
         contract={selectedContract}
         onPaymentSuccess={() => {
           // Refresh data or show success notification
+          // We could trigger a re-fetch here if we moved fetchLoans outside useEffect or used React Query
         }}
         onRefinanceSuccess={() => {
           setOpenCommandPanel(false);

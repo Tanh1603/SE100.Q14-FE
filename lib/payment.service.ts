@@ -6,6 +6,12 @@ import type {
   LoanSummary,
 } from "@/types/payment";
 import { mockPayments, mockLoans } from "@/mock-data/payment";
+import {
+  PaymentResponseAdapter,
+  PaymentAdapter,
+  CreatePaymentAdapter,
+} from "@/lib/adapters/payment.adapter";
+import { PaymentDTO, PagedResponseDTO } from "@/types/dto/payment.dto";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
@@ -28,6 +34,9 @@ export function formatDate(dateString: string): string {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -64,19 +73,49 @@ async function apiFetch<T>(
 // ============== Payment API Services ==============
 
 /**
+ * Real API Implementation (Future Use)
+ * This uses the Adapter Pattern to decouple from Backend
+ */
+export const PaymentServiceReal = {
+  getPayments: async (
+    params: PaymentListParams
+  ): Promise<PaymentListResponse> => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const response = await apiFetch<PagedResponseDTO<PaymentDTO>>(
+      `/payments?${queryParams.toString()}`
+    );
+    return PaymentResponseAdapter.toDomain(response);
+  },
+
+  createPayment: async (
+    data: CreatePaymentRequest,
+    idempotencyKey: string
+  ): Promise<Payment> => {
+    const payload = CreatePaymentAdapter.toPayload(data);
+    const response = await apiFetch<PaymentDTO>("/payments", {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(payload),
+    });
+    return PaymentAdapter.toDomain(response);
+  },
+};
+
+/**
  * Fetch paginated list of payments with optional filters
  */
 export async function getPayments(
   params: PaymentListParams = {}
 ): Promise<PaymentListResponse> {
-  // TODO: Replace with actual API call when backend is ready
-  // const queryParams = new URLSearchParams();
-  // Object.entries(params).forEach(([key, value]) => {
-  //   if (value !== undefined && value !== "") {
-  //     queryParams.append(key, String(value));
-  //   }
-  // });
-  // return apiFetch<PaymentListResponse>(`/payments?${queryParams.toString()}`);
+  // To switch to real API: return PaymentServiceReal.getPayments(params);
 
   // Mock implementation
   return new Promise((resolve) => {
@@ -199,14 +238,7 @@ export async function createPayment(
   data: CreatePaymentRequest,
   idempotencyKey: string
 ): Promise<Payment> {
-  // TODO: Replace with actual API call
-  // return apiFetch<Payment>("/payments", {
-  //   method: "POST",
-  //   headers: {
-  //     "Idempotency-Key": idempotencyKey,
-  //   },
-  //   body: JSON.stringify(data),
-  // });
+  // To switch to real API: return PaymentServiceReal.createPayment(data, idempotencyKey);
 
   // Mock implementation
   return new Promise((resolve, reject) => {
