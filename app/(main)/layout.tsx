@@ -3,7 +3,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { GlobalCommandListener } from "@/components/global/global-command-listener";
 import React from "react";
 
-const MainLayout = ({
+const MainLayout = async ({
   children,
 }: Readonly<{
   children: React.ReactNode;

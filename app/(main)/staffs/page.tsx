@@ -3,23 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { AppDialog } from "@/components/app-dialog";
+import { DataTable } from "@/components/data-table";
+import { mockStaff } from "@/mock-data/staff";
 import { Label } from "@radix-ui/react-label";
 import { LogOut, PlusCircle, Search, UserCog } from "lucide-react";
 import { useState } from "react";
-import StaffForm from "./staff-form";
-import { DataTable } from "@/components/data-table";
 import { StaffColumn } from "./columns";
-import { mockStaff } from "@/mock-data/staff";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import StaffForm from "./staff-form";
 
 const StaffPage = () => {
-  const [openSheet, setOpenSheet] = useState<boolean>(false);
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
 
   return (
     // Removed SidebarInset wrapper
@@ -48,7 +42,7 @@ const StaffPage = () => {
         {/* Table - Responsive */}
         <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="flex flex-wrap gap-3 mb-5">
-            <Button onClick={() => setOpenSheet(true)}>
+            <Button onClick={() => setOpenDialog(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Thêm mới
             </Button>
@@ -65,19 +59,13 @@ const StaffPage = () => {
         </div>
       </div>
 
-      <Dialog open={openSheet} onOpenChange={setOpenSheet}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Thêm mới nhân viên</DialogTitle>
-            <DialogDescription>
-              Tạo tài khoản nhân viên mới và phân quyền cửa hàng quản lý.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-6">
-            <StaffForm />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AppDialog
+        title="Thêm mới khách hàng"
+        open={openDialog}
+        onOpenChange={() => setOpenDialog(false)}
+      >
+        <StaffForm />
+      </AppDialog>
     </div>
   );
 };

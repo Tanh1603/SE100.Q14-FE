@@ -34,10 +34,7 @@ export function AppDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
       <DialogContent
-        className={cn(
-          "max-w-[95vw] sm:max-w-lg md:max-w-xl w-full max-h-[90vh] overflow-y-auto",
-          contentClassName
-        )}
+        className={cn("sm:max-w-none w-fit", contentClassName)}
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>

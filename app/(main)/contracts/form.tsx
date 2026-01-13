@@ -265,7 +265,7 @@ const ContractForm = ({ initial }: ContractFormProps) => {
             <div className="bg-white p-6 rounded-xl border shadow-sm flex flex-col gap-6">
               <div className="flex gap-4 items-start">
                 <div
-                  className="relative w-32 h-32 rounded-xl border-dashed border-2 border-gray-300 hover:border-primary cursor-pointer flex items-center justify-center bg-gray-50 flex-shrink-0 transition-colors"
+                  className="relative w-32 h-32 rounded-xl border-dashed border-2 border-gray-300 hover:border-primary cursor-pointer flex items-center justify-center bg-gray-50 shrink-0 transition-colors"
                   onClick={handleUploadClick}
                 >
                   {image ? (

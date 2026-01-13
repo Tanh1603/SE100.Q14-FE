@@ -122,7 +122,6 @@ const CustomerPage = () => {
         title="Thêm mới khách hàng"
         open={openDialog}
         onOpenChange={() => setOpenDialog(false)}
-        contentClassName="max-w-6xl"
       >
         <CustomerForm initialCustomer={selectedCustomer} />
       </AppDialog>

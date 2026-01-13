@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getMenuByRole } from "@/config/navigation/menu.config";
-import { getRole } from "@/lib/role.utils";
+import { Role } from "@/types/constant";
 import { currentUser } from "@clerk/nextjs/server";
 import { NavUser } from "../features/user/nav-user";
 import { NavItem } from "./nav-item";
@@ -18,7 +18,11 @@ export async function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const user = await currentUser();
-  const role = await getRole();
+  // const role = await getRole();
+  if (!user) {
+    return <div>Bạn chưa đăng nhập</div>;
+  }
+  const role = user.publicMetadata?.role as Role | undefined;
   const menuItem = role ? getMenuByRole(role) : [];
 
   const navUser = user && {
