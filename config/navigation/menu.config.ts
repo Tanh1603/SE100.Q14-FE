@@ -10,11 +10,13 @@ import {
   Users,
   Wallet,
   Warehouse,
+  FileWarning,
 } from "lucide-react";
 
 export type MenuIcon =
   | "home"
   | "contracts"
+  | "contracts-overdue"
   | "customers"
   | "assets"
   | "cashbook"
@@ -42,6 +44,7 @@ export function getMenuByRole(role: Role): MenuItem[] {
 export const iconMap = {
   home: LayoutDashboard,
   contracts: FileSignature,
+  "contracts-overdue": FileWarning,
   customers: Users,
   assets: Archive,
   cashbook: Wallet,
@@ -68,6 +71,13 @@ export const menuConfig: MenuItem[] = [
     href: "/contracts",
     icon: "contracts",
     roles: ["admin", "manager", "staff"],
+  },
+
+  {
+    title: "Hợp đồng quá hạn",
+    href: "/contracts/overdue",
+    icon: "contracts-overdue",
+    roles: ["admin", "manager"],
   },
 
   // Customers

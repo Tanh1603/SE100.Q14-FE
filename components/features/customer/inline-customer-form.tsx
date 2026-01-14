@@ -16,12 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockLocations } from "@/mock-data/location";
-import { mockCustomer } from "@/mock-data/customer";
 import { Customer } from "@/types/customer";
 import { CustomerStatus } from "@/types/enum";
+import { LocationService, Province, Ward } from "@/lib/location.service";
+import { mockCustomer } from "@/mock-data/customer";
 import {
   ChevronDown,
+  // ... (rest of imports)
   PlusCircle,
   Search,
   User,
@@ -29,12 +30,16 @@ import {
   MapPin,
   CreditCard,
   Info,
+  ImageUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface InlineCustomerFormProps {
-  onCustomerSelect: (customer: Customer) => void;
+  onCustomerSelect: (
+    customer: Customer & { mattruoc?: File; matsau?: File }
+  ) => void;
   selectedCustomer: Customer | null;
   onClearCustomer: () => void;
 }
@@ -47,6 +52,8 @@ interface QuickCustomerData {
   provinceId: string;
   wardId: string;
   permanentAddress: string;
+  mattruoc?: File;
+  matsau?: File;
 }
 
 export function InlineCustomerForm({
@@ -70,11 +77,38 @@ export function InlineCustomerForm({
     permanentAddress: "",
   });
 
-  // Get wards based on selected province
-  const selectedProvince = mockLocations.find(
-    (p) => p.id === quickCustomer.provinceId
+  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
+    null
   );
-  const wards = selectedProvince?.wards ?? [];
+  const [backImagePreview, setBackImagePreview] = useState<string | null>(null);
+  const frontInputRef = useRef<HTMLInputElement>(null);
+  const backInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Location State ---
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
+
+  // Fetch provinces on mount
+  useEffect(() => {
+    LocationService.getProvinces().then(setProvinces).catch(console.error);
+  }, []);
+
+  // Fetch wards when provinceId changes
+  useEffect(() => {
+    if (quickCustomer.provinceId) {
+      // Find the selected province to get its 'code' (not 'id') for the API call
+      const selectedProvince = provinces.find(
+        (p) => p.id === quickCustomer.provinceId
+      );
+      if (selectedProvince) {
+        LocationService.getWardsByProvince(selectedProvince.code)
+          .then(setWards)
+          .catch(console.error);
+      }
+    } else {
+      setWards([]);
+    }
+  }, [quickCustomer.provinceId, provinces]);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -83,40 +117,58 @@ export function InlineCustomerForm({
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    const results = mockCustomer.filter(
+    const filtered = mockCustomer.filter(
       (c) =>
-        c.fullName.toLowerCase().includes(query) ||
-        c.phone.includes(query) ||
-        c.cccd.includes(query)
+        c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.phone.includes(searchQuery) ||
+        c.cccd.includes(searchQuery)
     );
-    setSearchResults(results);
+
+    setSearchResults(filtered);
     setShowSearchResults(true);
   };
 
   const handleSelectCustomer = (customer: Customer) => {
     onCustomerSelect(customer);
     setSearchQuery("");
-    setSearchResults([]);
     setShowSearchResults(false);
-    setShowCreateForm(false);
   };
 
   const handleQuickCreate = () => {
     // Basic validation
-    if (!quickCustomer.fullName || !quickCustomer.phone) {
-      alert("Vui lòng nhập Họ tên và Số điện thoại");
+    if (
+      !quickCustomer.fullName ||
+      !quickCustomer.phone ||
+      !quickCustomer.cccd
+    ) {
+      alert("Vui lòng nhập đầy đủ: Họ tên, Số điện thoại và số CCCD");
       return;
     }
 
-    // In 'Full' mode, require CCCD as well usually, but for now we enforce logic based on fields
-    if (creationMode === "full" && !quickCustomer.cccd) {
-      alert("Vui lòng nhập số CCCD cho chế độ đầy đủ");
-      return;
+    // In 'Full' mode, require CCCD, images, and address
+    if (creationMode === "full") {
+      if (!quickCustomer.cccd) {
+        alert("Vui lòng nhập số CCCD cho chế độ đầy đủ");
+        return;
+      }
+      if (!quickCustomer.mattruoc || !quickCustomer.matsau) {
+        alert("Vui lòng tải lên ảnh CCCD mặt trước và mặt sau");
+        return;
+      }
+      if (
+        !quickCustomer.provinceId ||
+        !quickCustomer.wardId ||
+        !quickCustomer.permanentAddress
+      ) {
+        alert(
+          "Vui lòng nhập đầy đủ địa chỉ thường trú (Tỉnh/TP, Phường/Xã, Số nhà)"
+        );
+        return;
+      }
     }
 
     // Create a new customer with info
-    const newCustomer: Customer = {
+    const newCustomer: Customer & { mattruoc?: File; matsau?: File } = {
       id: `new-${Date.now()}`,
       avatar: "",
       fullName: quickCustomer.fullName.toUpperCase(),
@@ -142,6 +194,8 @@ export function InlineCustomerForm({
         father: { fullName: "", phone: "", job: "" },
         mother: { fullName: "", phone: "", job: "" },
       },
+      mattruoc: quickCustomer.mattruoc,
+      matsau: quickCustomer.matsau,
     };
 
     onCustomerSelect(newCustomer);
@@ -156,6 +210,8 @@ export function InlineCustomerForm({
       wardId: "",
       permanentAddress: "",
     });
+    setFrontImagePreview(null);
+    setBackImagePreview(null);
   };
 
   // If customer is already selected, show the preview
@@ -372,7 +428,7 @@ export function InlineCustomerForm({
                   </div>
                   <div className="grid gap-1.5">
                     <Label className="text-xs font-semibold uppercase text-gray-500">
-                      Số CCCD (Tùy chọn)
+                      Số CCCD <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       placeholder="12 số trên thẻ căn cước"
@@ -457,7 +513,92 @@ export function InlineCustomerForm({
 
                   <div className="space-y-2 pt-2 border-t">
                     <Label className="text-xs font-semibold text-gray-500 uppercase">
-                      Địa chỉ thường trú
+                      Ảnh CCCD (Mặt trước & Mặt sau){" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div
+                        className="relative h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50"
+                        onClick={() => frontInputRef.current?.click()}
+                      >
+                        {frontImagePreview ? (
+                          <Image
+                            src={frontImagePreview}
+                            alt="CCCD Front"
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                        ) : (
+                          <>
+                            <ImageUp className="w-5 h-5 text-gray-400" />
+                            <span className="text-[10px] text-gray-500">
+                              Mặt trước
+                            </span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          ref={frontInputRef}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setQuickCustomer((prev) => ({
+                                ...prev,
+                                mattruoc: file,
+                              }));
+                              const reader = new FileReader();
+                              reader.onloadend = () =>
+                                setFrontImagePreview(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div
+                        className="relative h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-50/50"
+                        onClick={() => backInputRef.current?.click()}
+                      >
+                        {backImagePreview ? (
+                          <Image
+                            src={backImagePreview}
+                            alt="CCCD Back"
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                        ) : (
+                          <>
+                            <ImageUp className="w-5 h-5 text-gray-400" />
+                            <span className="text-[10px] text-gray-500">
+                              Mặt sau
+                            </span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          ref={backInputRef}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setQuickCustomer((prev) => ({
+                                ...prev,
+                                matsau: file,
+                              }));
+                              const reader = new FileReader();
+                              reader.onloadend = () =>
+                                setBackImagePreview(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase">
+                      Địa chỉ thường trú <span className="text-red-500">*</span>
                     </Label>
                     <div className="grid grid-cols-2 gap-3">
                       <Select
@@ -474,9 +615,9 @@ export function InlineCustomerForm({
                           <SelectValue placeholder="Tỉnh/TP" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockLocations.map((loc) => (
+                          {provinces.map((loc) => (
                             <SelectItem key={loc.id} value={loc.id}>
-                              {loc.label}
+                              {loc.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -494,7 +635,7 @@ export function InlineCustomerForm({
                         <SelectContent>
                           {wards.map((w) => (
                             <SelectItem key={w.id} value={w.id}>
-                              {w.label}
+                              {w.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -17,13 +17,23 @@ import {
   HomeIcon,
   Phone,
   PiggyBank,
+  Loader2,
+  CalendarClock,
+  CheckCircle2,
 } from "lucide-react";
-import { mockDashboardStats } from "@/mock-data/statistics";
 import Link from "next/link";
-import { mockPawnContracts } from "@/mock-data/contracts";
+import { useState, useEffect } from "react";
+import {
+  RepaymentScheduleService,
+  RepaymentScheduleItemResponse,
+} from "@/lib/repayment-schedule.service";
+import { CommunicationService } from "@/lib/communication.service";
+import { PaymentServiceReal } from "@/lib/payment.service";
+import { LoanService } from "@/lib/loan.service";
 import { ContractCommandPanel } from "@/components/features/loan/contract-command-panel";
+import { LogCommunicationDialog } from "@/components/features/communication/log-communication-dialog";
 import { loan } from "@/types/asset";
-import { useState } from "react";
+import { toast } from "sonner";
 
 // Helper function to format currency
 const formatCurrency = (amount: number): string => {
@@ -33,65 +43,145 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// Derive mock data for upcoming payments based on actual contracts
-// This ensures we have valid loan objects to pass to the CommandPanel
-const upcomingPayments = mockPawnContracts.slice(0, 3).map((loan, index) => {
-  const daysUntilDue = index; // 0, 1, 2
-  const dueDate = new Date(Date.now() + daysUntilDue * 86400000)
-    .toISOString()
-    .split("T")[0];
-  const interest = (loan.totalLoan * loan.interestRate) / 100;
-
-  return {
-    id: loan.id,
-    customerName: loan.customer.fullName,
-    phone: loan.customer.phoneNumber,
-    assetName: loan.asset.name,
-    dueDate: dueDate,
-    amount: interest,
-    daysUntilDue: daysUntilDue,
-    contractId: (loan as any).contractNumber || `HD-${loan.id.toUpperCase()}`,
-    originalLoan: loan,
-  };
-});
-
-const getUrgencyColor = (daysUntilDue: number) => {
-  if (daysUntilDue <= 0)
-    return {
-      bg: "bg-red-50",
-      text: "text-red-600",
-      border: "border-red-200",
-      badge: "bg-red-100",
-    };
-  if (daysUntilDue === 1)
-    return {
-      bg: "bg-yellow-50",
-      text: "text-yellow-600",
-      border: "border-yellow-200",
-      badge: "bg-yellow-100",
-    };
-  return {
-    bg: "bg-green-50",
-    text: "text-green-600",
-    border: "border-green-200",
-    badge: "bg-green-100",
-  };
-};
-
-const getDueDateLabel = (daysUntilDue: number) => {
-  if (daysUntilDue <= 0) return "Hôm nay";
-  if (daysUntilDue === 1) return "Ngày mai";
-  return `Còn ${daysUntilDue} ngày`;
-};
-
 const HomePage = () => {
-  const [selectedContract, setSelectedContract] = useState<
-    (loan & { contractNumber?: string; endDate?: string }) | null
-  >(null);
-  const [openCommandPanel, setOpenCommandPanel] = useState(false);
+  const [stats, setStats] = useState({
+    todayTransactions: 0,
+    activeLoansMonth: 0,
+    collectedMonth: 0,
+    remainingFunds: 150000000,
+  });
 
-  const handleQuickPay = (loan: loan) => {
-    setSelectedContract(loan as loan & { contractNumber?: string });
+  const [overdueItems, setOverdueItems] = useState<
+    RepaymentScheduleItemResponse[]
+  >([]);
+  const [promisesToPay, setPromisesToPay] = useState<any[]>([]);
+  const [isLoadingOverdue, setIsLoadingOverdue] = useState(true);
+
+  // Dialog State
+  const [openCommandPanel, setOpenCommandPanel] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<
+    (loan & { contractNumber?: string }) | null
+  >(null);
+  const [openLogDialog, setOpenLogDialog] = useState(false);
+  const [selectedLogItem, setSelectedLogItem] =
+    useState<RepaymentScheduleItemResponse | null>(null);
+
+  // Local state for "Called Today" visualization
+  const [calledItems, setCalledItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      // ... (keep existing stats fetching logic)
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const firstDayOfMonth = new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1
+        )
+          .toISOString()
+          .split("T")[0];
+
+        // 1. Transactions Today
+        const paymentsToday = await PaymentServiceReal.getPayments({
+          dateFrom: today,
+          dateTo: today,
+        });
+        const totalTx = paymentsToday.meta.totalItems;
+
+        // 2. Loans This Month
+        const loansRes = await LoanService.getAllLoans(1, 100);
+        const loansMonth = loansRes.data.filter(
+          (l) => l.loanDate >= firstDayOfMonth
+        ).length;
+
+        // 3. Collected This Month
+        const paymentsMonth = await PaymentServiceReal.getPayments({
+          dateFrom: firstDayOfMonth,
+        });
+        const collectedCount = paymentsMonth.meta.totalItems;
+
+        setStats((prev) => ({
+          ...prev,
+          todayTransactions: totalTx,
+          activeLoansMonth: loansMonth,
+          collectedMonth: collectedCount,
+        }));
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      }
+    };
+
+    const fetchOverdue = async () => {
+      setIsLoadingOverdue(true);
+      try {
+        const res = await RepaymentScheduleService.getOverdue({
+          minDaysOverdue: 1,
+          limit: 5,
+        });
+        const augmented = res.data.map((item) => ({
+          ...item,
+          customerName:
+            item.customerName || "Khách hàng " + item.loanId.substring(0, 4),
+          contractCode:
+            item.contractCode ||
+            "HD-" + item.loanId.substring(0, 4).toUpperCase(),
+          daysOverdue: Math.floor(
+            (Date.now() - new Date(item.dueDate).getTime()) /
+              (1000 * 60 * 60 * 24)
+          ),
+        }));
+        setOverdueItems(augmented);
+      } catch (error) {
+        console.error("Failed to fetch overdue", error);
+      } finally {
+        setIsLoadingOverdue(false);
+      }
+    };
+
+    const fetchPromises = async () => {
+      try {
+        const res = await CommunicationService.getPromisesToPay();
+        setPromisesToPay(res || []);
+      } catch (error) {
+        console.error("Failed to fetch promises", error);
+        // Fallback or empty
+        setPromisesToPay([]);
+      }
+    };
+
+    fetchStats();
+    fetchOverdue();
+    fetchPromises();
+  }, []);
+
+  const handleOpenLogDialog = (item: RepaymentScheduleItemResponse) => {
+    setSelectedLogItem(item);
+    setOpenLogDialog(true);
+  };
+
+  const handleLogSuccess = () => {
+    if (selectedLogItem) {
+      setCalledItems((prev) => new Set(prev).add(selectedLogItem.id));
+    }
+    // Refresh promises list in case a new one was added
+    CommunicationService.getPromisesToPay()
+      .then(setPromisesToPay)
+      .catch(console.error);
+  };
+
+  const handleQuickPay = (loan: any) => {
+    // Using any for simplicity as loan mapping is tricky here
+    // In real app, we need to fetch full loan details first or map correctly
+    // Here assuming RepaymentScheduleItemResponse -> partial Loan
+    const mockLoan: any = {
+      id: loan.loanId,
+      contractNumber: loan.contractCode,
+      customer: { fullName: loan.customerName },
+      totalLoan: 0,
+      interestRate: 0,
+    };
+    setSelectedContract(mockLoan);
     setOpenCommandPanel(true);
   };
 
@@ -102,13 +192,14 @@ const HomePage = () => {
         <p className="text-2xl text-primary font-bold">Bảng điều khiển</p>
       </div>
 
-      {/* Responsive Grid: 1 col on mobile, 2 on tablet, 4 on desktop */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        {/* ... (Keep existing Stat Cards) ... */}
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Giao dịch</CardTitle>
             <CardDescription>
-              Hôm nay {new Date().toISOString().split("T")[0]}
+              Hôm nay ({new Date().toLocaleDateString("vi-VN")})
             </CardDescription>
             <CardAction>
               <div className="bg-[#e6eabf] rounded-3xl p-2">
@@ -118,14 +209,14 @@ const HomePage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-5xl font-bold text-green-500">
-              {mockDashboardStats.todayTransactions}
+              {stats.todayTransactions}
             </p>
           </CardContent>
         </Card>
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Cho vay</CardTitle>
-            <CardDescription>Hợp đồng</CardDescription>
+            <CardDescription>Hợp đồng tháng này</CardDescription>
             <CardAction>
               <div className="bg-[#eabfe8] rounded-3xl p-2">
                 <HandCoins className="w-10 h-10 text-[#ea1ddc]" />
@@ -134,14 +225,14 @@ const HomePage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-5xl font-bold text-green-500">
-              {mockDashboardStats.activeLoanContracts}
+              {stats.activeLoansMonth}
             </p>
           </CardContent>
         </Card>
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Đã thu</CardTitle>
-            <CardDescription>Hợp đồng</CardDescription>
+            <CardDescription>Giao dịch tháng này</CardDescription>
             <CardAction>
               <div className="bg-[#bfeac9] rounded-3xl p-2">
                 <Banknote className="w-10 h-10 text-[#26ed1c]" />
@@ -150,7 +241,7 @@ const HomePage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-5xl font-bold text-green-500">
-              {mockDashboardStats.collectedContracts}
+              {stats.collectedMonth}
             </p>
           </CardContent>
         </Card>
@@ -158,7 +249,7 @@ const HomePage = () => {
           <CardHeader>
             <CardTitle className="text-white">Quỹ tiền còn</CardTitle>
             <CardDescription className="text-white/80 text-xs">
-              {formatCurrency(mockDashboardStats.remainingFunds)}
+              Hệ thống
             </CardDescription>
             <CardAction>
               <div className="bg-[#7edd94] rounded-3xl p-2">
@@ -168,92 +259,103 @@ const HomePage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold text-white">
-              {(mockDashboardStats.remainingFunds / 1000000).toFixed(0)}M
+              {formatCurrency(stats.remainingFunds)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* CALL LIST WIDGET - Now Interactive */}
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
-        <Card className="col-span-1 md:col-span-2">
+      {/* MAIN CONTENT GRID */}
+      <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* COLUMN 1: OVERDUE LIST (2/3 width) */}
+        <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              📞 Danh sách nhắc nợ (3 ngày tới)
+              📞 Danh sách nhắc nợ ngày mai
             </CardTitle>
             <CardDescription>
-              Khách hàng đến hạn đóng lãi - Click để xem chi tiết
+              Các khoản vay quá hạn hoặc sắp tới hạn cần xử lý gấp.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {upcomingPayments.map((payment) => {
-                const urgency = getUrgencyColor(payment.daysUntilDue);
-                return (
-                  <div
-                    key={payment.id}
-                    className={`${urgency.bg} ${urgency.border} border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer group`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-gray-900 truncate">
-                            {payment.customerName}
+            {isLoadingOverdue ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              </div>
+            ) : overdueItems.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 text-sm border border-dashed rounded">
+                Không có khoản vay nào cần nhắc nợ.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {overdueItems.map((item) => {
+                  const isCalled = calledItems.has(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`border rounded-lg p-4 transition-all hover:shadow-md group ${
+                        isCalled
+                          ? "bg-green-50 border-green-200 opacity-70"
+                          : "bg-red-50 border-red-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-gray-900 truncate">
+                              {item.customerName}
+                            </p>
+                            {isCalled ? (
+                              <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Đã gọi
+                              </span>
+                            ) : (
+                              <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                                Quá hạn {item.daysOverdue} ngày
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">
+                            Hợp đồng: {item.contractCode} • Hạn:{" "}
+                            {new Date(item.dueDate).toLocaleDateString("vi-VN")}
                           </p>
-                          <span
-                            className={`${urgency.badge} ${urgency.text} text-xs px-2 py-0.5 rounded-full font-medium`}
-                          >
-                            {getDueDateLabel(payment.daysUntilDue)}
-                          </span>
                         </div>
-                        <p className="text-sm text-gray-600 truncate">
-                          {payment.assetName} • {payment.contractId}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Phone className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            {payment.phone}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right mr-2">
-                          <p className="text-xs text-gray-500">Lãi cần thu</p>
-                          <p className={`font-bold ${urgency.text}`}>
-                            {formatCurrency(payment.amount)}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuickPay(payment.originalLoan);
-                          }}
-                        >
-                          <Banknote className="w-4 h-4 mr-1" />
-                          Thu lãi
-                        </Button>
-                        <Link href="/contracts">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right mr-2 hidden sm:block">
+                            <p className="text-xs text-gray-500">Phải thu</p>
+                            <p
+                              className={`font-bold ${
+                                isCalled ? "text-green-700" : "text-red-600"
+                              }`}
+                            >
+                              {formatCurrency(item.totalAmount)}
+                            </p>
+                          </div>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => e.stopPropagation()}
+                            className={`${
+                              isCalled
+                                ? "bg-gray-400 hover:bg-gray-500"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            } text-white`}
+                            onClick={() => handleOpenLogDialog(item)}
+                            disabled={isCalled}
                           >
-                            <ChevronRight className="w-4 h-4" />
+                            <Phone className="w-4 h-4 mr-1" />
+                            {isCalled ? "Xong" : "Gọi"}
                           </Button>
-                        </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="mt-4 text-center">
-              <Link href="/contracts">
+              <Link href="/contracts/overdue">
                 <Button variant="outline" size="sm">
-                  Xem tất cả hợp đồng
+                  Xem tất cả hợp đồng quá hạn và sắp tới hạn
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
@@ -261,44 +363,91 @@ const HomePage = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Stats Card */}
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">Tổng quan tuần này</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Hợp đồng mới</span>
-              <span className="font-bold text-blue-600">5</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Đã thanh lý</span>
-              <span className="font-bold text-red-600">2</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-sm text-gray-600">Gia hạn</span>
-              <span className="font-bold text-yellow-600">3</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm text-gray-600">Thu lãi</span>
-              <span className="font-bold text-green-600">12</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* COLUMN 2: PROMISES & STATS (1/3 width) */}
+        <div className="col-span-1 space-y-5">
+          {/* PROMISES TO PAY WIDGET */}
+          <Card className="border-blue-200 bg-blue-50/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 text-blue-800">
+                <CalendarClock className="w-4 h-4" /> Danh sách hứa trả
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {promisesToPay.length > 0 ? (
+                <div className="space-y-3">
+                  {promisesToPay.map((promise, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white p-3 rounded border shadow-sm text-sm"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-gray-800">
+                          {promise.customerName}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                          {new Date(
+                            promise.promiseToPayDate
+                          ).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                      <p className="text-gray-500 text-xs line-clamp-1">
+                        {promise.notes || "Không có ghi chú"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400 text-sm">
+                  Chưa có lịch hẹn trả nợ nào.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Tổng quan tuần này</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-2">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-sm text-gray-600">Hợp đồng mới</span>
+                <span className="font-bold text-blue-600">5</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-sm text-gray-600">Đã thanh lý</span>
+                <span className="font-bold text-red-600">2</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="text-sm text-gray-600">Gia hạn</span>
+                <span className="font-bold text-yellow-600">3</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-gray-600">Thu lãi</span>
+                <span className="font-bold text-green-600">12</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <ContractCommandPanel
         open={openCommandPanel}
         onOpenChange={setOpenCommandPanel}
         contract={selectedContract}
-        onPaymentSuccess={() => {
-          // Refresh data or show success notification
-          setOpenCommandPanel(false);
-        }}
-        onRefinanceSuccess={() => {
-          setOpenCommandPanel(false);
-        }}
+        onPaymentSuccess={() => setOpenCommandPanel(false)}
+        onRefinanceSuccess={() => setOpenCommandPanel(false)}
       />
+
+      {selectedLogItem && (
+        <LogCommunicationDialog
+          open={openLogDialog}
+          onOpenChange={setOpenLogDialog}
+          loanId={selectedLogItem.loanId}
+          customerName={selectedLogItem.customerName || "Khách hàng"}
+          onSuccess={handleLogSuccess}
+        />
+      )}
     </div>
   );
 };

@@ -13,34 +13,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { InlineCustomerForm } from "@/components/features/customer/inline-customer-form";
 import { mockAssetType } from "@/mock-data/asset";
+import { mockwarehouses } from "@/mock-data/warehouse";
 import { Customer } from "@/types/customer";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BadgeDollarSign,
-  Menu,
   PlusCircle,
   ShoppingBag,
   User,
   Trash2,
   Box,
+  Calculator,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import {
   AssetCreationSidePanel,
   AssetDraft,
-} from "@/components/features/contract/asset-creation-side-panel"; // Import the new panel
+} from "@/components/features/contract/asset-creation-side-panel";
+import { LoanService } from "@/lib/loan.service";
+import { CustomerService } from "@/lib/customer.service";
+import { CollateralService } from "@/lib/collateral.service";
+import { DisbursementService } from "@/lib/disbursement.service";
+import { LoanTypeService, LoanType } from "@/lib/loan-type.service";
+import { ConfigurationService } from "@/lib/configuration.service";
+import { generateIdempotencyKey } from "@/lib/payment.service";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+import { RepaymentMethod } from "@/types/enum";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 // --- 1. View Model (Form Schema) ---
-// This schema drives the UI and Validation, optimized for User Experience.
 const assetSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Tên tài sản là bắt buộc"),
   warehouseId: z.string().min(1, "Vui lòng chọn kho"),
   assetTypeId: z.string().min(1, "Vui lòng chọn loại tài sản"),
-  fieldValues: z.record(z.string(), z.string()), // Dynamic fields: { "color": "Red", "imei": "123" }
+  fieldValues: z.record(z.string(), z.string()),
   image: z.any().optional(),
+  imageFile: z.any().optional(), // Store file object for upload
   valuation: z.string().optional(),
 });
 
@@ -48,89 +71,84 @@ const formSchema = z.object({
   customerId: z.string().min(1, "Vui lòng chọn khách hàng"),
   loanDate: z.string(),
   totalLoan: z.number().min(0),
-  interestPeriod: z.number().min(1),
-  interestRate: z.number().min(0),
-  numberPayment: z.number().min(1),
+  loanTypeId: z.string().min(1, "Vui lòng chọn gói vay"),
+  repaymentMethod: z
+    .nativeEnum(RepaymentMethod)
+    .default(RepaymentMethod.INTEREST_ONLY),
+  storeId: z.string().min(1, "Vui lòng chọn chi nhánh"),
   assets: z.array(assetSchema).min(1, "Cần ít nhất một tài sản"),
+  numberPayment: z.number().optional(), // Used for display mainly, derived from loan type
 });
 
-// Infer strict TypeScript types from Zod schemas
 type ContractFormValues = z.infer<typeof formSchema>;
 type AssetFormValue = z.infer<typeof assetSchema>;
 
-// --- 2. API Model & Adapter ---
-// Hypothetical API Request Shape (snake_case, nested structure, etc.)
-type CreateContractApiRequest = {
-  customer_id: string;
-  loan_details: {
-    amount: number;
-    rate_monthly: number;
-    disbursement_date: string;
-    duration_months: number;
-  };
-  collaterals: Array<{
-    name: string;
-    type_id: string;
-    warehouse_id: string;
-    attributes: Array<{ field_id: string; value: string }>;
-    estimated_value: number;
-  }>;
-};
-
-// THE ADAPTER: Wires your Form Data -> API Contract
-const mapFormToApi = (
-  formData: ContractFormValues
-): CreateContractApiRequest => {
-  return {
-    customer_id: formData.customerId,
-    loan_details: {
-      amount: formData.totalLoan,
-      rate_monthly: formData.interestRate,
-      disbursement_date: formData.loanDate,
-      // distinct naming conventions example
-      duration_months: formData.numberPayment * 1, // assuming monthly
-    },
-    collaterals: formData.assets.map((asset) => ({
-      name: asset.name,
-      type_id: asset.assetTypeId,
-      warehouse_id: asset.warehouseId,
-      // Transforming Record<string, string> -> Array<{key, value}>
-      attributes: Object.entries(asset.fieldValues || {}).map(
-        ([key, value]) => ({
-          field_id: key,
-          value: String(value),
-        })
-      ),
-      estimated_value: Number(asset.valuation || 0),
-    })),
-  };
-};
-
 export default function CreateContractPage() {
+  const router = useRouter();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
-
-  // State for side panel
   const [isAssetPanelOpen, setIsAssetPanelOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<any>(null);
+
+  // New State for Data
+  const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
+  const [configurations, setConfigurations] = useState<Record<string, string>>(
+    {}
+  );
+  const [selectedLoanType, setSelectedLoanType] = useState<LoanType | null>(
+    null
+  );
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      customerId: "", // Initialize to empty string to match schema
+      customerId: "",
       loanDate: new Date().toISOString().split("T")[0],
       totalLoan: 0,
-      interestPeriod: 1,
-      interestRate: 1.5,
-      numberPayment: 12,
+      loanTypeId: "",
+      repaymentMethod: RepaymentMethod.INTEREST_ONLY,
+      storeId: mockwarehouses[0]?.id || "", // Default store
       assets: [],
     },
   });
 
-  const { watch, setValue, control } = form;
+  const { watch, setValue, control, handleSubmit } = form;
   const assets = watch("assets");
+  const currentLoanTypeId = watch("loanTypeId");
 
-  // Handle customer selection
+  // Fetch Data on Mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const [types, configs] = await Promise.all([
+        LoanTypeService.getAll(),
+        ConfigurationService.getConfigurations("RATES"),
+      ]);
+      setLoanTypes(types);
+      setConfigurations(configs);
+    };
+    fetchData();
+  }, []);
+
+  // Update selected loan type object when ID changes
+  useEffect(() => {
+    if (currentLoanTypeId) {
+      const type = loanTypes.find((t) => t.id.toString() === currentLoanTypeId);
+      setSelectedLoanType(type || null);
+      if (type) {
+        setValue("numberPayment", type.durationMonths);
+      }
+    }
+  }, [currentLoanTypeId, loanTypes, setValue]);
+
+  // Calculate Total Custody Fee Rate from Assets
+  const totalCustodyFeeRate = assets.reduce((sum, asset) => {
+    const type = mockAssetType.find((t) => t.id === asset.assetTypeId);
+    return sum + Number(type?.custodyFeeRateMonthly || 0);
+  }, 0);
+
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
     setValue("customerId", customer.id);
@@ -142,11 +160,11 @@ export default function CreateContractPage() {
   };
 
   const handleAddAsset = (newAsset: AssetDraft) => {
-    // Convert AssetDraft to AssetFormValue (they are compatible mostly)
     const asset: AssetFormValue = {
       ...newAsset,
       id: newAsset.id || Math.random().toString(),
       fieldValues: newAsset.fieldValues || {},
+      imageFile: newAsset.imageFile,
     };
     setValue("assets", [...assets, asset]);
   };
@@ -157,17 +175,102 @@ export default function CreateContractPage() {
     setValue("assets", newAssets);
   };
 
-  const onSubmit = (data: ContractFormValues) => {
-    console.log("🔵 Form Data (View Model):", data);
+  const handleSimulate = async () => {
+    const { totalLoan, repaymentMethod, loanTypeId } = form.getValues();
+    if (totalLoan <= 0) {
+      toast.error("Vui lòng nhập số tiền vay > 0");
+      return;
+    }
+    if (!loanTypeId) {
+      toast.error("Vui lòng chọn gói vay");
+      return;
+    }
 
-    // 1. Convert to API Model
-    const apiPayload = mapFormToApi(data);
-    console.log("🟢 API Payload (Contract Model):", apiPayload);
+    setIsSimulating(true);
+    try {
+      const result = await LoanService.simulateLoan({
+        loanAmount: totalLoan,
+        totalFeeRate: totalCustodyFeeRate,
+        repaymentMethod: repaymentMethod,
+        loanTypeId: Number(loanTypeId),
+      });
 
-    // 2. Call API (mock)
-    // await createContract(apiPayload);
+      setSimulationResult(result);
+      toast.success("Tính toán thành công!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi tính toán khoản vay");
+    } finally {
+      setIsSimulating(false);
+    }
+  };
 
-    alert("Hợp đồng đã được tạo thành công! (Check Console for Payload)");
+  const onSubmit = async (data: ContractFormValues) => {
+    if (!selectedCustomer) {
+      toast.error("Vui lòng chọn khách hàng");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let customerId = selectedCustomer.id;
+
+      // 1. Create Customer if new
+      if (customerId.startsWith("new-")) {
+        const newCust = await CustomerService.create(selectedCustomer as any);
+        customerId = newCust.id;
+      }
+
+      // 2. Create Collaterals
+      const collateralIds: string[] = [];
+      for (const asset of data.assets) {
+        const res = await CollateralService.create(
+          {
+            collateralTypeId: Number(asset.assetTypeId),
+            ownerName: selectedCustomer.fullName,
+            collateralInfo: asset.fieldValues,
+            status: "PROPOSED",
+          },
+          asset.imageFile ? [asset.imageFile] : undefined
+        );
+        collateralIds.push(res.id);
+      }
+
+      // 3. Create Loan
+      const createRes = await LoanService.createLoan({
+        customerId: customerId,
+        loanAmount: data.totalLoan,
+        repaymentMethod: data.repaymentMethod,
+        loanTypeId: Number(data.loanTypeId),
+        collateralIds: collateralIds,
+        notes: "Created via full workflow",
+      });
+
+      const loanId = createRes.loan.id;
+
+      // 4. Approve
+      await LoanService.approveLoan(loanId, "Auto-approved");
+
+      // 5. Disburse
+      await DisbursementService.create(
+        {
+          loanId: loanId,
+          storeId: data.storeId,
+          amount: data.totalLoan,
+          disbursementMethod: "CASH",
+          recipientName: selectedCustomer.fullName,
+        },
+        generateIdempotencyKey()
+      );
+
+      toast.success("Hợp đồng đã được tạo và giải ngân thành công!");
+      router.push("/contracts");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Lỗi: ${error.message || "Không thể tạo hợp đồng"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -182,15 +285,21 @@ export default function CreateContractPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" type="button">
+          <Button variant="outline" type="button" onClick={() => router.back()}>
             Hủy bỏ
           </Button>
           <Button
             type="submit"
-            onClick={form.handleSubmit(onSubmit)}
-            className="bg-primary hover:bg-primary/90"
+            onClick={handleSubmit(onSubmit)}
+            className="bg-primary hover:bg-primary/90 min-w-[150px]"
+            disabled={isSubmitting}
           >
-            Tạo Hợp Đồng
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <PlusCircle className="w-4 h-4 mr-2" />
+            )}
+            {isSubmitting ? "Đang xử lý..." : "Lập Hợp Đồng"}
           </Button>
         </div>
       </div>
@@ -198,8 +307,8 @@ export default function CreateContractPage() {
       <div className="flex-1 overflow-auto">
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col gap-6 pb-20 max-w-3xl mx-auto"
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-6 pb-20 max-w-4xl mx-auto"
           >
             {/* COLUMN 1: CUSTOMER */}
             <div className="w-full space-y-4">
@@ -211,7 +320,6 @@ export default function CreateContractPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  {/* Inline Customer Form with Search & Create */}
                   <InlineCustomerForm
                     selectedCustomer={selectedCustomer}
                     onCustomerSelect={handleCustomerSelect}
@@ -233,119 +341,379 @@ export default function CreateContractPage() {
                     Thông tin khoản vay
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4 grid grid-cols-2 gap-4">
-                  <FormField
-                    control={control}
-                    name="totalLoan"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel className="text-base font-semibold">
-                          Số tiền vay (VNĐ)
-                        </FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              className="text-2xl font-bold text-green-700 h-14 pl-10"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
-                            />
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-700 font-bold text-xl">
-                              ₱
-                            </span>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Row 1: Loan Amount & Store */}
+                    <FormField
+                      control={control}
+                      name="totalLoan"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel className="text-base font-semibold">
+                            Số tiền vay (VNĐ)
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                className="text-lg font-bold text-green-700 h-10 pl-8"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number(e.target.value))
+                                }
+                              />
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-700 font-bold">
+                                ₫
+                              </span>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="storeId"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>Chi nhánh giải ngân</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn chi nhánh" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {mockwarehouses.map((w) => (
+                                <SelectItem key={w.id} value={w.id}>
+                                  {w.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+
+                      {/* Row 2: Loan Product (Type) & Duration (Read-only) */}
+                      <FormField
+                        control={control}
+                        name="loanTypeId"
+                        render={({ field }) => (
+                          <FormItem className="col-span-1">
+                            <FormLabel>Gói sản phẩm vay</FormLabel>
+                            <FormControl>
+                              <SearchableSelect
+                                options={loanTypes.map((type) => ({
+                                  value: type.id.toString(),
+                                  label: type.name,
+                                  detail: `${type.interestRateMonthly}%/tháng - ${type.durationMonths} tháng`,
+                                }))}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="Tìm kiếm gói vay..."
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                    <div className="space-y-2">
+                      <Label className="text-gray-500">Thời hạn vay</Label>
+                      <div className="h-10 px-3 py-2 rounded-md border bg-gray-100 text-gray-700 font-medium flex items-center">
+                        {selectedLoanType
+                          ? `${selectedLoanType.durationMonths} Tháng`
+                          : "--"}
+                      </div>
+                    </div>
+
+                    {/* Row 3: Repayment Method & Disbursement Date */}
+                    <FormField
+                      control={control}
+                      name="repaymentMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hình thức trả lãi</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn hình thức" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value={RepaymentMethod.INTEREST_ONLY}>
+                                Trả lãi định kỳ (Gốc cuối kỳ)
+                              </SelectItem>
+                              <SelectItem
+                                value={RepaymentMethod.EQUAL_INSTALLMENT}
+                              >
+                                Trả góp đều (Gốc + Lãi)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="loanDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ngày giải ngân</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Interest Rate Summary Box */}
+                  <div className="bg-gray-50 p-3 rounded-md text-sm space-y-1 border border-gray-200">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Lãi suất cơ bản (Loan Product):
+                      </span>
+                      <span className="font-medium">
+                        {selectedLoanType?.interestRateMonthly || 0}% / tháng
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        Phí lưu kho (Tài sản):
+                      </span>
+                      <span className="font-medium">
+                        {totalCustodyFeeRate}% / tháng
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-gray-300">
+                      <span className="font-bold text-gray-800">
+                        Tổng lãi & phí áp dụng:
+                      </span>
+                      <span className="font-bold text-primary">
+                        {(
+                          Number(selectedLoanType?.interestRateMonthly || 0) +
+                          Number(totalCustodyFeeRate)
+                        ).toFixed(2)}
+                        % / tháng
+                      </span>
+                    </div>
+                    {configurations["LEGAL_INTEREST_CAP"] &&
+                      Number(selectedLoanType?.interestRateMonthly || 0) +
+                        Number(totalCustodyFeeRate) >
+                        Number(configurations["LEGAL_INTEREST_CAP"]) && (
+                        <div className="text-xs text-red-500 pt-1">
+                          ⚠️ Vượt quá trần lãi suất quy định (
+                          {configurations["LEGAL_INTEREST_CAP"]}%)
+                        </div>
+                      )}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full mt-2 border-dashed border-2 bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                    onClick={handleSimulate}
+                    disabled={isSimulating}
+                  >
+                    {isSimulating ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Calculator className="w-4 h-4 mr-2" />
+                    )}
+                    Xem lịch trả nợ (Preview)
+                  </Button>
+
+                  {/* SIMULATION RESULTS */}
+                  {simulationResult && (
+                    <div className="bg-white rounded-lg border p-4 animate-in fade-in slide-in-from-top-2">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" /> Kết
+                        quả mô phỏng
+                      </h4>
+
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm mb-4">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">
+                            Tiền lãi dự tính:
+                          </span>
+                          <span className="font-medium">
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(simulationResult.totalInterest || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Tổng phí:</span>
+                          <span className="font-medium">
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(simulationResult.totalFees || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between col-span-2 pt-2 border-t mt-1">
+                          <span className="text-gray-500 font-bold">
+                            Tổng phải trả:
+                          </span>
+                          <span className="font-bold text-gray-900">
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(simulationResult.totalRepayment || 0)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {simulationResult.schedule &&
+                        simulationResult.schedule.length > 0 && (
+                          <div className="mt-2 pt-2 border-t">
+                            <h5 className="text-xs font-semibold uppercase text-gray-500 mb-2">
+                              Lịch trả nợ chi tiết
+                            </h5>
+                            <div className="overflow-x-auto max-h-60 overflow-y-auto border rounded scrollbar-thin">
+                              <table className="w-full text-xs text-left">
+                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                  <tr>
+                                    <th className="p-2 border-b font-semibold text-gray-600">
+                                      Kỳ
+                                    </th>
+                                    <th className="p-2 border-b font-semibold text-gray-600">
+                                      Ngày
+                                    </th>
+                                    <th className="p-2 border-b font-semibold text-gray-600 text-right">
+                                      Gốc
+                                    </th>
+                                    <th className="p-2 border-b font-semibold text-gray-600 text-right">
+                                      Lãi
+                                    </th>
+                                    <th className="p-2 border-b font-semibold text-gray-600 text-right">
+                                      Phí
+                                    </th>
+                                    <th className="p-2 border-b font-semibold text-gray-600 text-right">
+                                      Tổng
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {simulationResult.schedule.map(
+                                    (item: any, idx: number) => (
+                                      <tr
+                                        key={idx}
+                                        className="border-b last:border-0 hover:bg-gray-50/50 transition-colors"
+                                      >
+                                        <td className="p-2 text-center">
+                                          {item.periodNumber}
+                                        </td>
+                                        <td className="p-2">
+                                          {item.dueDate
+                                            ? new Date(
+                                                item.dueDate
+                                              ).toLocaleDateString("vi-VN")
+                                            : "-"}
+                                        </td>
+                                        <td className="p-2 text-right text-gray-600">
+                                          {new Intl.NumberFormat(
+                                            "vi-VN"
+                                          ).format(item.principalAmount)}
+                                        </td>
+                                        <td className="p-2 text-right text-gray-600">
+                                          {new Intl.NumberFormat(
+                                            "vi-VN"
+                                          ).format(item.interestAmount)}
+                                        </td>
+                                        <td className="p-2 text-right text-gray-600">
+                                          {new Intl.NumberFormat(
+                                            "vi-VN"
+                                          ).format(item.feeAmount)}
+                                        </td>
+                                        <td className="p-2 text-right font-bold text-gray-900">
+                                          {new Intl.NumberFormat(
+                                            "vi-VN"
+                                          ).format(item.totalAmount)}
+                                        </td>
+                                      </tr>
+                                    )
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        )}
+                    </div>
+                  )}
 
-                  <FormField
-                    control={control}
-                    name="interestRate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Lãi suất (% / tháng)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="interestPeriod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Kỳ đóng lãi (tháng)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="loanDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ngày giải ngân</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={control}
-                    name="numberPayment"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Số kỳ vay</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="col-span-2 pt-4 border-t mt-2">
+                  <div className="col-span-2 pt-4 border-t mt-2 space-y-2">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Tổng lãi dự tính:</span>
-                      <span className="font-semibold text-gray-900">
+                      <span className="text-gray-500">
+                        Tổng giá trị tài sản:
+                      </span>
+                      <span className="font-semibold text-purple-700">
                         {new Intl.NumberFormat("vi-VN", {
                           style: "currency",
                           currency: "VND",
                         }).format(
-                          ((watch("totalLoan") * watch("interestRate")) / 100) *
-                            watch("numberPayment")
+                          assets.reduce(
+                            (sum, a) => sum + (Number(a.valuation) || 0),
+                            0
+                          )
                         )}
                       </span>
                     </div>
+
+                    {assets.length > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500">
+                          Tỉ lệ vay / Tài sản (LTV):
+                        </span>
+                        <span
+                          className={`font-bold ${
+                            (watch("totalLoan") /
+                              (assets.reduce(
+                                (sum, a) => sum + (Number(a.valuation) || 0),
+                                0
+                              ) || 1)) *
+                              100 >
+                            80
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {(
+                            (watch("totalLoan") /
+                              (assets.reduce(
+                                (sum, a) => sum + (Number(a.valuation) || 0),
+                                0
+                              ) || 1)) *
+                            100
+                          ).toFixed(1)}
+                          %
+                        </span>
+                      </div>
+                    )}
+                    {assets.length > 0 &&
+                      (watch("totalLoan") /
+                        (assets.reduce(
+                          (sum, a) => sum + (Number(a.valuation) || 0),
+                          0
+                        ) || 1)) *
+                        100 >
+                        80 && (
+                        <div className="text-xs text-red-500 bg-red-50 p-2 rounded flex items-center gap-2">
+                          <Trash2 className="w-3 h-3" />
+                          ⚠️ Tỉ lệ vay cao ({">"}80%). Cần quản lý phê duyệt.
+                        </div>
+                      )}
                   </div>
                 </CardContent>
               </Card>
@@ -374,8 +742,16 @@ export default function CreateContractPage() {
                           key={idx}
                           className="flex items-start gap-4 p-4 border rounded-xl bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group relative"
                         >
-                          <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
-                            <Box className="w-5 h-5" />
+                          <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                            {asset.image ? (
+                              <img
+                                src={asset.image}
+                                alt="asset"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Box className="w-5 h-5" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 truncate">
@@ -423,6 +799,9 @@ export default function CreateContractPage() {
                         </p>
                       </div>
                     )}
+                    <FormMessage className="text-xs text-red-500">
+                      {form.formState.errors.assets?.message}
+                    </FormMessage>
                   </div>
 
                   {/* Add Button */}

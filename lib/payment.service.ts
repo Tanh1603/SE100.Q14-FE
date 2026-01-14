@@ -13,7 +13,8 @@ import {
 } from "@/lib/adapters/payment.adapter";
 import { PaymentDTO, PagedResponseDTO } from "@/types/dto/payment.dto";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+import { apiClient } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 
 // Utility to generate UUID for Idempotency-Key
 export function generateIdempotencyKey(): string {
@@ -37,37 +38,7 @@ export function formatDate(dateString: string): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   }).format(new Date(dateString));
-}
-
-// Generic API fetch wrapper
-async function apiFetch<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const defaultHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API Error: ${response.status}`);
-  }
-
-  return response.json();
 }
 
 // ============== Payment API Services ==============
@@ -80,17 +51,18 @@ export const PaymentServiceReal = {
   getPayments: async (
     params: PaymentListParams
   ): Promise<PaymentListResponse> => {
-    const queryParams = new URLSearchParams();
+    const queryParams: Record<string, string | number | boolean> = {};
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {
-        queryParams.append(key, String(value));
+        queryParams[key] = value;
       }
     });
 
-    const response = await apiFetch<PagedResponseDTO<PaymentDTO>>(
-      `/payments?${queryParams.toString()}`
+    const response = await apiClient.get<PagedResponseDTO<PaymentDTO>>(
+      ENDPOINTS.PAYMENTS,
+      { params: queryParams }
     );
-    return PaymentResponseAdapter.toDomain(response);
+    return PaymentResponseAdapter.toDomain(response.data);
   },
 
   createPayment: async (
@@ -98,14 +70,16 @@ export const PaymentServiceReal = {
     idempotencyKey: string
   ): Promise<Payment> => {
     const payload = CreatePaymentAdapter.toPayload(data);
-    const response = await apiFetch<PaymentDTO>("/payments", {
-      method: "POST",
-      headers: {
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify(payload),
-    });
-    return PaymentAdapter.toDomain(response);
+    const response = await apiClient.post<PaymentDTO>(
+      ENDPOINTS.PAYMENTS,
+      payload,
+      {
+        headers: {
+          "Idempotency-Key": idempotencyKey,
+        },
+      }
+    );
+    return PaymentAdapter.toDomain(response.data);
   },
 };
 

@@ -18,114 +18,134 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
+import { useRef, useState } from "react";
+import {
+  IdCard,
+  ImageUpIcon,
+  Calculator,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import { mockAssetType } from "@/mock-data/asset";
 import { mockwarehouses } from "@/mock-data/warehouse";
-import { AssetTypeFieldEnum } from "@/types/enum";
-
-import { IdCard, ImageUpIcon } from "lucide-react";
-import Image from "next/image";
-import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { AssetTypeFieldEnum, RepaymentMethod } from "@/types/enum";
 import { AssetColumn, AssetColumnDef } from "./column";
-import { Label } from "@/components/ui/label";
+import { InlineCustomerForm } from "@/components/features/customer/inline-customer-form";
+import { Customer } from "@/types/customer";
+import { LoanService } from "@/lib/loan.service";
+import { CollateralService } from "@/lib/collateral.service";
+import { CustomerService } from "@/lib/customer.service";
+import { DisbursementService } from "@/lib/disbursement.service";
+import { generateIdempotencyKey } from "@/lib/payment.service";
 
-type ContractFormProps = {
-  initial?: FormState | undefined | null;
-};
-
-type FormState = {
-  id: string;
-  loanDate: string;
-  totalLoan: number;
-  interestPeriod: string;
-  interestRate: string;
-  numberPayment: number;
-
-  asset: {
-    id: string;
-    name: string;
-    image: string;
-    warehouse: {
-      id: string;
-      name: string;
-    };
-    assetType: {
-      id: string;
-      name: string;
-      custodyFee?: number;
-      field: {
-        id: string;
-        label: string; // nhãn ví dụ vàng
-        required: boolean; // cần hay không
-        type: AssetTypeFieldEnum; // string, date, number
-      }[];
-      fieldValues?: Record<string, string>; // key = field.id, value = input
-    };
-  };
-  customer: {
-    id: string;
-  };
-};
+// ...
 
 const ContractForm = ({ initial }: ContractFormProps) => {
-  const form = useForm<FormState>({
-    defaultValues: initial || undefined,
-  });
+  // ... (keep previous state)
 
-  const onSubmit = (data: FormState) => {
-    console.log(data);
-  };
+  const onSubmit = async (data: any) => {
+    if (!selectedCustomer) {
+      toast.error("Vui lòng chọn khách hàng");
+      return;
+    }
+    if (assets.length === 0) {
+      toast.error("Vui lòng thêm ít nhất một tài sản");
+      return;
+    }
 
-  const [assets, setAssets] = useState<AssetColumnDef[]>([]);
+    setIsSubmitting(true);
+    try {
+      let customerId = selectedCustomer.id;
 
-  const hanleCreateAsset = (asset: AssetColumnDef) => {
-    setAssets((prev) => [...prev, asset]);
-  };
+      // 1. Create Customer if it's new
+      if (customerId.startsWith("new-")) {
+        const newCust = await CustomerService.create(selectedCustomer as any);
+        customerId = newCust.id;
+      }
 
-  const handleDeleteAsset = (asset: AssetColumnDef) => {
-    setAssets((prev) => prev.filter((a) => a.id !== asset.id));
-  };
+      // 2. Create Collateral Assets
+      const collateralIds: string[] = [];
+      for (const asset of assets) {
+        const res = await CollateralService.create(
+          {
+            collateralTypeId: Number(asset.assetType.id),
+            ownerName: selectedCustomer.fullName,
+            collateralInfo: asset.assetType.fieldValues || {},
+            status: "PROPOSED",
+          },
+          asset.files
+        );
+        collateralIds.push(res.id);
+      }
 
-  const [selectedAssetType, SetSelectedAssetType] = useState<{
-    id: string;
-    name: string;
-    field: {
-      id: string;
-      label: string; // nhãn ví dụ vàng
-      required: boolean; // cần hay không
-      type: AssetTypeFieldEnum; // string, date, number
-    }[];
-    fieldValues?: Record<string, string>; // key = field.id, value = input
-  } | null>(null);
+      // 3. Create Loan (PENDING)
+      const createRes = await LoanService.createLoan({
+        customerId: customerId,
+        loanAmount: Number(data.totalLoan),
+        repaymentMethod: data.repaymentMethod,
+        loanTypeId: Number(data.loanTypeId),
+        collateralIds: collateralIds,
+        notes: data.notes,
+      });
 
-  const [image, setImage] = useState<string | undefined | undefined>(
-    initial?.asset.image
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
+      const loanId = createRes.loan.id;
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+      // 4. Auto-Approve
+      await LoanService.approveLoan(loanId, "Auto-approved during creation");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+      // 5. Disburse rightaway
+      await DisbursementService.create(
+        {
+          loanId: loanId,
+          storeId: data.storeId,
+          amount: Number(data.totalLoan),
+          disbursementMethod: "CASH",
+          recipientName: selectedCustomer.fullName,
+        },
+        generateIdempotencyKey()
+      );
 
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
+      toast.success("Hợp đồng đã được lập, duyệt và giải ngân thành công!");
+      router.push("/contracts");
+    } catch (error: any) {
+      console.error("Workflow failed:", error);
+      toast.error(`Lỗi: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-8">
+        {/* CUSTOMER SECTION */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+              <IdCard className="w-5 h-5" />
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800">
+              Thông tin khách hàng
+            </h3>
+          </div>
+          <InlineCustomerForm
+            selectedCustomer={selectedCustomer}
+            onCustomerSelect={setSelectedCustomer}
+            onClearCustomer={() => setSelectedCustomer(null)}
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* LEFT COLUMN: LOAN INFO */}
+          {/* LOAN INFO */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                <IdCard className="w-5 h-5" />
+              <div className="p-2 bg-green-100 rounded-lg text-green-600">
+                <Calculator className="w-5 h-5" />
               </div>
               <h3 className="font-semibold text-lg text-gray-800">
                 Thông tin khoản vay
@@ -136,17 +156,17 @@ const ContractForm = ({ initial }: ContractFormProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="loanDate"
+                  name="totalLoan"
                   render={({ field }) => (
                     <FormItem className="col-span-2">
-                      <FormLabel>
-                        Ngày vay<span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel>Số tiền vay (VNĐ)</FormLabel>
                       <FormControl>
                         <Input
-                          type="date"
-                          placeholder="Nhập ngày vay"
+                          type="number"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value))
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -156,102 +176,77 @@ const ContractForm = ({ initial }: ContractFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="totalLoan"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>
-                        Tổng tiền vay<span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            className="pl-10 font-semibold"
-                            placeholder="Nhập tổng tiền vay"
-                            {...field}
-                          />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                            ₫
-                          </span>
-                        </div>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="interestPeriod"
+                  name="repaymentMethod"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Kì hạn lãi (tháng)
-                        <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Nhập kì đóng lãi"
-                          {...field}
-                        />
-                      </FormControl>
+                      <FormLabel>Hình thức trả lãi</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn hình thức" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={RepaymentMethod.INTEREST_ONLY}>
+                            Trả lãi trước
+                          </SelectItem>
+                          <SelectItem value={RepaymentMethod.EQUAL_INSTALLMENT}>
+                            Trả góp đều
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )}
                 />
 
                 <FormField
                   control={form.control}
-                  name="interestRate"
-                  render={({ field }) => {
-                    const rate = parseFloat(field.value || "0");
-                    const isHighRate = rate > 1.7; // > 20% / year approx 1.66% / month
-
-                    return (
-                      <FormItem>
-                        <FormLabel>
-                          Lãi suất (%/tháng)
-                          <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Nhập lãi suất"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        {isHighRate && (
-                          <div className="mt-2 text-xs p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
-                            ⚠️ Lãi suất cao hơn quy định (20%/năm ~ 1.6%/tháng).
-                          </div>
-                        )}
-                      </FormItem>
-                    );
-                  }}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="numberPayment"
+                  name="loanDate"
                   render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>
-                        Số lần trả
-                        <span className="text-red-500">*</span>
-                      </FormLabel>
+                    <FormItem>
+                      <FormLabel>Ngày vay</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Nhập số lần trả"
-                          {...field}
-                        />
+                        <Input type="date" {...field} />
                       </FormControl>
                     </FormItem>
                   )}
                 />
               </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleSimulate}
+                disabled={isSimulating}
+              >
+                {isSimulating ? "Đang tính toán..." : "Tính toán lịch trả nợ"}
+              </Button>
+
+              {simulationResult && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                  <AlertTitle>Kết quả tính toán</AlertTitle>
+                  <AlertDescription>
+                    Tổng lãi dự kiến:{" "}
+                    {new Intl.NumberFormat("vi-VN").format(
+                      simulationResult.totalInterest
+                    )}{" "}
+                    VNĐ. Mỗi kỳ đóng:{" "}
+                    {new Intl.NumberFormat("vi-VN").format(
+                      simulationResult.monthlyPayment
+                    )}{" "}
+                    VNĐ.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </div>
 
-          {/* RIGHT COLUMN: ASSET INFO */}
+          {/* ASSETS SECTION */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 pb-2 border-b">
               <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
@@ -262,203 +257,167 @@ const ContractForm = ({ initial }: ContractFormProps) => {
               </h3>
             </div>
 
-            <div className="bg-white p-6 rounded-xl border shadow-sm flex flex-col gap-6">
+            <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
               <div className="flex gap-4 items-start">
                 <div
-                  className="relative w-32 h-32 rounded-xl border-dashed border-2 border-gray-300 hover:border-primary cursor-pointer flex items-center justify-center bg-gray-50 shrink-0 transition-colors"
-                  onClick={handleUploadClick}
+                  className="relative w-24 h-24 rounded-lg border-dashed border-2 border-gray-300 hover:border-primary cursor-pointer flex items-center justify-center bg-gray-50 shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  {image ? (
+                  {currentAssetImage ? (
                     <Image
-                      src={image}
-                      alt="image"
+                      src={currentAssetImage}
+                      alt="asset"
                       fill
-                      className="object-contain p-2"
+                      className="object-cover rounded-lg"
                     />
                   ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500">
-                      <ImageUpIcon className="w-8 h-8 text-gray-400" />
-                      <span className="text-xs">Tải ảnh</span>
-                    </div>
+                    <ImageUpIcon className="w-6 h-6 text-gray-400" />
                   )}
-
-                  {/* Hidden input */}
-                  <Input
+                  <input
                     type="file"
-                    accept="image/*"
                     ref={fileInputRef}
-                    onChange={handleFileChange}
                     className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCurrentAssetFiles([file]);
+                        const reader = new FileReader();
+                        reader.onloadend = () =>
+                          setCurrentAssetImage(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                   />
                 </div>
 
                 <div className="flex-1 space-y-4">
                   <FormField
                     control={form.control}
-                    name="asset.name"
+                    name="currentAsset.name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          Tên tài sản<span className="text-red-500">*</span>
-                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="Nhập tên tài sản" {...field} />
+                          <Input
+                            placeholder="Tên tài sản (VD: Honda Vision)"
+                            {...field}
+                          />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="asset.assetType.id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm">
-                          Loại tài sản<span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
+                  <div className="grid grid-cols-2 gap-2">
+                    <FormField
+                      control={form.control}
+                      name="currentAsset.assetType.id"
+                      render={({ field }) => (
+                        <FormItem>
                           <Select
-                            value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
+                            onValueChange={(val) => {
+                              field.onChange(val);
                               const selected = mockAssetType.find(
-                                (a) => a.id === value
+                                (t) => t.id === val
                               );
                               if (selected) {
-                                form.setValue("asset.assetType", {
-                                  id: selected.id,
-                                  name: selected.name,
-                                  field: selected.field.map((a) => ({
-                                    id: a.id,
-                                    label: a.label,
-                                    required: a.required,
-                                    type: a.type,
-                                  })),
-                                  fieldValues: undefined,
-                                });
-                                SetSelectedAssetType({
-                                  id: selected.id,
-                                  name: selected.name,
-                                  field: selected.field.map((a) => ({
-                                    id: a.id,
-                                    label: a.label,
-                                    required: a.required,
-                                    type: a.type,
-                                  })),
-                                  fieldValues: undefined,
-                                });
+                                SetSelectedAssetType(selected);
+                                form.setValue(
+                                  "currentAsset.assetType.name",
+                                  selected.name
+                                );
+                                form.setValue(
+                                  "currentAsset.assetType.field",
+                                  selected.field
+                                );
                               }
                             }}
                           >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Chọn loại tài sản" />
-                            </SelectTrigger>
-
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Loại tài sản" />
+                              </SelectTrigger>
+                            </FormControl>
                             <SelectContent>
-                              {mockAssetType.map((w) => (
+                              {mockAssetType.map((t) => (
+                                <SelectItem key={t.id} value={t.id}>
+                                  {t.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="currentAsset.warehouse.id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              const selected = mockwarehouses.find(
+                                (w) => w.id === val
+                              );
+                              if (selected) {
+                                form.setValue(
+                                  "currentAsset.warehouse.name",
+                                  selected.name
+                                );
+                              }
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn kho" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {mockwarehouses.map((w) => (
                                 <SelectItem key={w.id} value={w.id}>
                                   {w.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col item-center">
-                  <Label className="mb-2">Phí giữ (VNĐ)</Label>
-                  <div className="h-10 px-3 py-2 rounded-md border bg-gray-50 text-gray-900 text-sm flex items-center font-medium">
-                    10,000
-                  </div>
-                </div>
-
+              {selectedAssetType?.field?.map((f: any) => (
                 <FormField
+                  key={f.id}
                   control={form.control}
-                  name="asset.warehouse"
+                  name={`currentAsset.assetType.fieldValues.${f.id}`}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm">
-                        Kho<span className="text-red-500">*</span>
-                      </FormLabel>
+                      <FormLabel className="text-xs">{f.label}</FormLabel>
                       <FormControl>
-                        <Select
-                          value={field.value ? JSON.stringify(field.value) : ""}
-                          onValueChange={(val) =>
-                            field.onChange(val ? JSON.parse(val) : null)
+                        <Input
+                          className="h-8"
+                          type={
+                            f.type === AssetTypeFieldEnum.NUMBER
+                              ? "number"
+                              : "text"
                           }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chọn kho" />
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {mockwarehouses.map((w) => (
-                              <SelectItem
-                                key={w.id}
-                                value={JSON.stringify({
-                                  id: w.id,
-                                  name: w.name,
-                                })}
-                              >
-                                {w.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          {...field}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
                 />
-              </div>
+              ))}
 
-              {selectedAssetType && selectedAssetType.field.length > 0 && (
-                <div className="col-span-1 pt-4 border-t">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                    Thuộc tính chi tiết
-                  </h2>
-                  <div className="grid gap-4 grid-cols-2">
-                    {selectedAssetType.field.map((f) => (
-                      <FormField
-                        key={f.id}
-                        control={form.control}
-                        name={`asset.assetType.fieldValues.${f.id}`}
-                        rules={{ required: f.required }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">
-                              {f.label}
-                              {f.required && (
-                                <span className="text-red-500">*</span>
-                              )}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                className="h-9"
-                                type={
-                                  f.type === AssetTypeFieldEnum.NUMBER
-                                    ? "number"
-                                    : f.type === AssetTypeFieldEnum.DATE
-                                    ? "date"
-                                    : "text"
-                                }
-                                placeholder={`Nhập ${f.label}`}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={handleAddAsset}
+              >
+                Thêm vào danh sách
+              </Button>
 
               <div className="pt-4 border-t">
                 <DataTable
@@ -469,28 +428,18 @@ const ContractForm = ({ initial }: ContractFormProps) => {
             </div>
           </div>
         </div>
-        <div className="flex justify-end">
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={() => {
-              hanleCreateAsset(form.watch("asset"));
-              SetSelectedAssetType(null);
-              form.reset({
-                ...form.getValues(), // giữ các giá trị khác (loanDate, totalLoan...)
-                asset: {
-                  id: "",
-                  name: "",
-                  image: "",
-                  warehouse: { id: "", name: "" },
-                  assetType: { id: "", name: "", field: [], fieldValues: {} },
-                },
-              });
-            }}
-          >
-            Thêm tài sản
+
+        <div className="flex justify-end gap-4 pt-6 border-t">
+          <Button variant="outline" type="button" onClick={() => router.back()}>
+            Hủy bỏ
           </Button>
-          <Button type="submit">Xác nhận</Button>
+          <Button
+            type="submit"
+            className="min-w-[150px]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Đang xử lý..." : "Lập hợp đồng & Giải ngân"}
+          </Button>
         </div>
       </form>
     </Form>

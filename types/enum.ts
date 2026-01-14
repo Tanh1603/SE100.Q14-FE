@@ -160,3 +160,17 @@ export const PAYMENT_COMPONENT_LABELS: Record<PaymentComponentEnum, string> = {
   [PaymentComponentEnum.PENALTY]: "Phạt",
   [PaymentComponentEnum.SERVICE_FEE]: "Phí dịch vụ",
 };
+
+// Loan
+export enum RepaymentMethod {
+  EQUAL_INSTALLMENT = "EQUAL_INSTALLMENT",
+  INTEREST_ONLY = "INTEREST_ONLY",
+}
+
+export enum LoanStatus {
+  PENDING = "PENDING",
+  REJECTED = "REJECTED",
+  ACTIVE = "ACTIVE",
+  CLOSED = "CLOSED",
+  OVERDUE = "OVERDUE",
+}

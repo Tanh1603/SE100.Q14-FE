@@ -7,8 +7,15 @@ export const mockAssetType: AssetType[] = [
     id: "1",
     name: "Xe máy",
     custodyFee: 100000,
+    custodyFeeRateMonthly: 1.0, // 1%
     isActive: true,
     field: [
+      {
+        id: "condition",
+        label: "Tình trạng",
+        required: true,
+        type: AssetTypeFieldEnum.STRING,
+      },
       {
         id: "a",
         label: "Biển kiếm soát",
@@ -34,9 +41,16 @@ export const mockAssetType: AssetType[] = [
     id: "2",
     name: "Điện thoại",
     custodyFee: 100000,
+    custodyFeeRateMonthly: 1.5, // 1.5%
 
     isActive: true,
     field: [
+      {
+        id: "condition",
+        label: "Tình trạng",
+        required: true,
+        type: AssetTypeFieldEnum.STRING,
+      },
       {
         id: "d",
         label: "IMEI",

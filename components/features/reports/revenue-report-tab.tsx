@@ -7,8 +7,7 @@ import {
   TrendingDown,
   Coins,
   ShieldAlert,
-  Search,
-  X,
+  Loader2,
 } from "lucide-react";
 import {
   BarChart,
@@ -25,8 +24,6 @@ import {
 } from "recharts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useDebounce } from "@/hooks/use-debounce";
-import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -49,77 +46,120 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mockRevenueEntries, mockRevenueStats } from "@/mock-data/revenue";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RoleGate } from "@/components/features/role/role-gate";
+import { StoreSelector } from "./store-selector";
+import { ReportService } from "@/lib/report.service";
+import { RevenueReportListResponse } from "@/types/report";
 
 const RevenueReportTab = () => {
   const [period, setPeriod] = useState("month");
+  const [storeId, setStoreId] = useState<string>("");
+  const [data, setData] = useState<RevenueReportListResponse | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Filters
-  const [filters, setFilters] = useState({
-    search: "",
-    dateFrom: "",
-    dateTo: "",
+  // Filters (Client side filtering of the fetched list if needed, or simplified)
+  // Since the API takes startDate/endDate, we should map "Period" to dates.
+  const [dateRange, setDateRange] = useState<{ from: string; to: string }>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
+    to: new Date().toISOString().split("T")[0],
   });
 
-  const debouncedFilters = useDebounce(filters, 500);
+  // Effect to update dates when period changes
+  useEffect(() => {
+    const now = new Date();
+    let from = new Date();
+    let to = new Date();
 
-  // Filtered Data
-  const filteredEntries = useMemo(() => {
-    return mockRevenueEntries.filter((entry) => {
-      const matchSearch =
-        !debouncedFilters.search ||
-        entry.description
-          .toLowerCase()
-          .includes(debouncedFilters.search.toLowerCase()) ||
-        entry.customerName
-          ?.toLowerCase()
-          .includes(debouncedFilters.search.toLowerCase()) ||
-        entry.contractId
-          ?.toLowerCase()
-          .includes(debouncedFilters.search.toLowerCase());
+    if (period === "month") {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+      to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (period === "quarter") {
+      const quarter = Math.floor((now.getMonth() + 3) / 3);
+      from = new Date(now.getFullYear(), (quarter - 1) * 3, 1);
+      to = new Date(now.getFullYear(), quarter * 3, 0);
+    } else if (period === "year") {
+      from = new Date(now.getFullYear(), 0, 1);
+      to = new Date(now.getFullYear(), 11, 31);
+    }
 
-      const matchDateFrom =
-        !debouncedFilters.dateFrom ||
-        new Date(entry.date) >= new Date(debouncedFilters.dateFrom);
-
-      const matchDateTo =
-        !debouncedFilters.dateTo ||
-        new Date(entry.date) <= new Date(debouncedFilters.dateTo);
-
-      return matchSearch && matchDateFrom && matchDateTo;
+    setDateRange({
+      from: from.toISOString().split("T")[0],
+      to: to.toISOString().split("T")[0],
     });
-  }, [debouncedFilters]);
+  }, [period]);
 
-  // Derived Chart Data (Mocking realistic trends based on period)
-  const chartData = [
-    { name: "T1", revenue: 4000, expense: 2400, profit: 2400 },
-    { name: "T2", revenue: 3000, expense: 1398, profit: 2210 },
-    { name: "T3", revenue: 2000, expense: 9800, profit: 2290 },
-    { name: "T4", revenue: 2780, expense: 3908, profit: 2000 },
-    { name: "T5", revenue: 1890, expense: 4800, profit: 2181 },
-    { name: "T6", revenue: 2390, expense: 3800, profit: 2500 },
-    { name: "T7", revenue: 3490, expense: 4300, profit: 2100 },
-  ];
+  const fetchData = async () => {
+    // If Admin/Owner and no store selected, maybe fetch all?
+    // Assuming API handles null storeId for aggregation
+    try {
+      setLoading(true);
+      const res = await ReportService.getRevenueReport(
+        dateRange.from,
+        dateRange.to,
+        storeId || undefined
+      );
+      setData(res);
+    } catch (error) {
+      console.error("Failed to fetch revenue report", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const pieData = [
-    { name: "Lãi vay", value: 65, color: "#22c55e" },
-    { name: "Thanh lý", value: 25, color: "#3b82f6" },
-    { name: "Phí dịch vụ", value: 10, color: "#eab308" },
-    { name: "Khác", value: 5, color: "#9ca3af" },
-  ];
+  useEffect(() => {
+    if (dateRange.from && dateRange.to) {
+      fetchData();
+    }
+  }, [dateRange, storeId]);
 
-  const formatCurrency = (val: number) =>
+  const formatCurrency = (val?: number) =>
     new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(val);
+    }).format(val || 0);
+
+  // Transform Data for Charts
+  const chartData = (data && Array.isArray(data.data) ? data.data : []).map(
+    (d) => ({
+      name: new Date(d.date).getDate().toString(), // Show day number
+      revenue: d.totalRevenue,
+      expense: d.totalExpense,
+      profit: d.totalRevenue - d.totalExpense,
+    })
+  );
+
+  const pieData = data
+    ? [
+        {
+          name: "Lãi vay",
+          value: data.summary.totalInterest,
+          color: "#22c55e",
+        },
+        {
+          name: "Thanh lý",
+          value: data.summary.totalLiquidationExcess,
+          color: "#3b82f6",
+        },
+        {
+          name: "Phí dịch vụ",
+          value: data.summary.totalServiceFee,
+          color: "#eab308",
+        },
+        {
+          name: "Phạt quá hạn",
+          value: data.summary.totalLateFee,
+          color: "#9ca3af",
+        },
+      ].filter((i) => i.value > 0)
+    : [];
 
   return (
     <div className="space-y-6">
       <RoleGate
-        allowedRoles={["admin", "manager"]}
+        allowedRoles={["admin", "manager", "store_owner"]}
         fallback={
           <div className="flex flex-col items-center justify-center p-10 text-center bg-gray-50 rounded-lg border border-dashed text-gray-400">
             <ShieldAlert className="w-10 h-10 mb-2" />
@@ -137,6 +177,7 @@ const RevenueReportTab = () => {
           </div>
 
           <div className="flex gap-2">
+            <StoreSelector value={storeId} onChange={setStoreId} />
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Chọn kỳ" />
@@ -157,29 +198,14 @@ const RevenueReportTab = () => {
 
         {/* Filters */}
         <div className="bg-white p-4 rounded-xl border shadow-sm space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Tìm kiếm</Label>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Nội dung, mã HĐ..."
-                  className="pl-9"
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters({ ...filters, search: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Từ ngày</Label>
               <Input
                 type="date"
-                value={filters.dateFrom}
+                value={dateRange.from}
                 onChange={(e) =>
-                  setFilters({ ...filters, dateFrom: e.target.value })
+                  setDateRange({ ...dateRange, from: e.target.value })
                 }
               />
             </div>
@@ -188,286 +214,275 @@ const RevenueReportTab = () => {
               <Label>Đến ngày</Label>
               <Input
                 type="date"
-                value={filters.dateTo}
+                value={dateRange.to}
                 onChange={(e) =>
-                  setFilters({ ...filters, dateTo: e.target.value })
+                  setDateRange({ ...dateRange, to: e.target.value })
                 }
               />
             </div>
 
             <div className="flex items-end">
               <Button
-                variant="outline"
+                onClick={() => fetchData()}
+                disabled={loading}
                 className="w-full"
-                onClick={() =>
-                  setFilters({ search: "", dateFrom: "", dateTo: "" })
-                }
               >
-                <X className="mr-2 h-4 w-4" />
-                Xóa bộ lọc
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  "Áp dụng"
+                )}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Biểu đồ doanh thu {"&"} chi phí</CardTitle>
-                <CardDescription>
-                  Theo dõi xu hướng tài chính theo thời gian
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis
-                        tickFormatter={(value) =>
-                          new Intl.NumberFormat("vi-VN", {
-                            notation: "compact",
-                            compactDisplay: "short",
-                          }).format(value)
-                        }
-                      />
-                      <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
-                        labelStyle={{ color: "#333" }}
-                      />
-                      <Legend />
-                      <Bar
-                        name="Doanh thu"
-                        dataKey="revenue"
-                        fill="#22c55e"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar
-                        name="Chi phí"
-                        dataKey="expense"
-                        fill="#ef4444"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-
-          <div className="lg:col-span-1">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Cơ cấu nguồn thu</CardTitle>
-                <CardDescription>
-                  Phân bổ doanh thu theo danh mục
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px] w-full relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                    <div className="text-2xl font-bold">100%</div>
-                    <div className="text-xs text-muted-foreground">
-                      Tổng thu
-                    </div>
+        ) : !data ? (
+          <div className="text-center p-12 text-muted-foreground">
+            Không có dữ liệu
+          </div>
+        ) : (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Tổng doanh thu
+                  </CardTitle>
+                  <Coins className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(data.summary.totalRevenue)}
                   </div>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {pieData.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center text-sm"
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="font-semibold">{item.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Tổng doanh thu
-              </CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(mockRevenueStats.totalRevenue)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-                <span className="text-green-500 font-medium">
-                  +{mockRevenueStats.monthlyGrowth}%
-                </span>
-                <span className="ml-1">so với tháng trước</span>
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Lợi nhuận ròng
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 font-mono">
-                {formatCurrency(mockRevenueStats.totalProfit)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Lãi suất thực sau chi phí
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Chi phí vận hành
-              </CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600 font-mono">
-                {formatCurrency(mockRevenueStats.totalExpenses)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Lương, Mặt bằng, Điện nước
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lãi dự thu</CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600 font-mono">
-                {formatCurrency(mockRevenueStats.outstandingInterest)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Lãi chưa thu từ các HĐ đang vay
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Transaction Ledger */}
-          <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Nhật ký giao dịch tài chính</CardTitle>
-                <CardDescription>
-                  Các khoản thu chi phát sinh gần đây
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ngày</TableHead>
-                      <TableHead>Loại</TableHead>
-                      <TableHead>Mô tả</TableHead>
-                      <TableHead className="text-right">Số tiền</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium whitespace-nowrap">
-                          {entry.date}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                              entry.type === "INTEREST"
-                                ? "bg-green-100 text-green-700"
-                                : entry.type === "LIQUIDATION"
-                                ? "bg-blue-100 text-blue-700"
-                                : entry.type === "FEE"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {entry.type === "INTEREST"
-                              ? "LÃI VAY"
-                              : entry.type === "LIQUIDATION"
-                              ? "THANH LÝ"
-                              : entry.type === "FEE"
-                              ? "PHÍ"
-                              : "KHÁC"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div>{entry.description}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {entry.customerName}{" "}
-                            {entry.contractId && `- ${entry.contractId}`}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold font-mono text-green-600">
-                          +{formatCurrency(entry.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredEntries.length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          Không có dữ liệu
-                        </TableCell>
-                      </TableRow>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Lợi nhuận ròng (Ước tính)
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600 font-mono">
+                    {formatCurrency(
+                      data.summary.totalRevenue - data.summary.totalExpense
                     )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Doanh thu - Chi phí
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Tổng chi phí
+                  </CardTitle>
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600 font-mono">
+                    {formatCurrency(data.summary.totalExpense)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Giải ngân
+                  </CardTitle>
+                  <Coins className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600 font-mono">
+                    {formatCurrency(data.summary.totalLoanDisbursement)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vốn đã chi ra
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Biểu đồ doanh thu {"&"} chi phí</CardTitle>
+                    <CardDescription>
+                      Theo dõi xu hướng tài chính trong kỳ
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={chartData}
+                          margin={{
+                            top: 20,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis dataKey="name" />
+                          <YAxis
+                            tickFormatter={(value) =>
+                              new Intl.NumberFormat("vi-VN", {
+                                notation: "compact",
+                                compactDisplay: "short",
+                              }).format(value)
+                            }
+                          />
+                          <Tooltip
+                            formatter={(value) => formatCurrency(value as any)}
+                            labelStyle={{ color: "#333" }}
+                          />
+                          <Legend />
+                          <Bar
+                            name="Doanh thu"
+                            dataKey="revenue"
+                            fill="#22c55e"
+                            radius={[4, 4, 0, 0]}
+                          />
+                          <Bar
+                            name="Chi phí"
+                            dataKey="expense"
+                            fill="#ef4444"
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="lg:col-span-1">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle>Cơ cấu nguồn thu</CardTitle>
+                    <CardDescription>
+                      Phân bổ doanh thu theo danh mục
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px] w-full relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) =>
+                              formatCurrency(value as number | undefined)
+                            }
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                        <div className="text-xl font-bold">100%</div>
+                        <div className="text-xs text-muted-foreground">
+                          Tổng thu
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {pieData.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center text-sm"
+                        >
+                          <div className="flex items-center">
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span>{item.name}</span>
+                          </div>
+                          <span className="font-semibold">
+                            {(
+                              (item.value / data.summary.totalRevenue) *
+                              100
+                            ).toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Ledger Table */}
+            <div className="grid grid-cols-1 gap-6">
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>Chi tiết hằng ngày</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ngày</TableHead>
+                        <TableHead className="text-right">Doanh thu</TableHead>
+                        <TableHead className="text-right">Chi phí</TableHead>
+                        <TableHead className="text-right">
+                          Lợi nhuận ngày
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(Array.isArray(data.data) ? data.data : []).map(
+                        (entry, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium whitespace-nowrap">
+                              {new Date(entry.date).toLocaleDateString("vi-VN")}
+                            </TableCell>
+                            <TableCell className="text-right text-green-600">
+                              +{formatCurrency(entry.totalRevenue)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-600">
+                              -{formatCurrency(entry.totalExpense)}
+                            </TableCell>
+                            <TableCell className="text-right font-bold">
+                              {formatCurrency(
+                                entry.totalRevenue - entry.totalExpense
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </RoleGate>
     </div>
   );

@@ -164,74 +164,108 @@ const LoanActions = ({ row }: { row: any }) => {
   );
 };
 
+import { Badge } from "@/components/ui/badge";
+
 export const LoanColumn: ColumnDef<loan>[] = [
-  // ... previous columns ...
   {
     accessorKey: "contractNumber",
     header: "Mã HĐ",
-    // Fix: cast to any to avoid TS error if contractNumber is missing in type definition
     cell: ({ row }) => (
-      <span className="font-mono font-medium">
+      <span className="font-mono font-bold text-primary">
         {(row.original as any).contractNumber || "---"}
       </span>
     ),
   },
   {
     accessorKey: "customer.fullName",
-    header: "Tên khách hàng",
+    header: "Khách hàng",
     cell: ({ row }) => (
-      <span className="font-semibold">{row.original.customer.fullName}</span>
+      <div className="flex flex-col">
+        <span className="font-semibold">{row.original.customer.fullName}</span>
+        <span className="text-xs text-muted-foreground">{row.original.customer.phone}</span>
+      </div>
     ),
   },
   {
     accessorKey: "asset.name",
-    header: "Tên tài sản",
-    cell: (info) => info.getValue() as string, // Simplification
-  },
-  {
-    accessorKey: "totalLoan",
-    header: "Số tiền vay",
+    header: "Tài sản",
     cell: ({ row }) => (
-      <span className="text-primary font-bold">
-        {formatCurrency(row.getValue("totalLoan"))}
-      </span>
+        <div className="flex flex-col">
+            <span className="font-medium">{row.original.asset.name}</span>
+            <span className="text-xs text-muted-foreground">{row.original.asset.assetType?.name}</span>
+        </div>
     ),
   },
   {
-    // Placeholder for "Interest to date"
-    id: "interest",
-    header: "Lãi tạm tính",
-    cell: ({ row }) => {
-      // Simple mock calculation: 1 month of interest
-      const interest =
-        (row.original.totalLoan * row.original.interestRate) / 100;
-      return (
-        <span className="text-orange-600">{formatCurrency(interest)}</span>
-      );
-    },
+    accessorKey: "totalLoan",
+    header: "Khoản vay",
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <span className="font-bold text-green-700">
+            {formatCurrency(row.getValue("totalLoan"))}
+        </span>
+        <span className="text-xs text-muted-foreground">
+            Lãi suất: {row.original.interestRate || 0}%
+        </span>
+      </div>
+    ),
   },
   {
-    accessorKey: "asset.status",
+    id: "status",
+    accessorKey: "status", // Use the direct status string if available from adapter
     header: "Trạng thái",
     cell: ({ row }) => {
-      const status = row.original.asset.status;
-      const isPledged = status === AssetStatus.PLEDGED;
+      // Adapter maps API status to row.original.status (string) OR asset.status (enum)
+      // Let's use the status string if it exists on the object (added in adapter)
+      const rawStatus = (row.original as any).status || row.original.asset.status;
+      
+      let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "outline";
+      let label = rawStatus;
+
+      switch (rawStatus) {
+        case "ACTIVE":
+          badgeVariant = "default";
+          label = "Đang vay";
+          break;
+        case "OVERDUE":
+          badgeVariant = "destructive";
+          label = "Quá hạn";
+          break;
+        case "CLOSED":
+          badgeVariant = "secondary";
+          label = "Đã đóng";
+          break;
+        case "PENDING":
+          badgeVariant = "outline";
+          label = "Chờ duyệt";
+          break;
+        case "REJECTED":
+          badgeVariant = "destructive";
+          label = "Từ chối";
+          break;
+        default:
+           // Fallback for AssetStatus enum values
+           if (rawStatus === AssetStatus.PLEDGED) {
+               badgeVariant = "default";
+               label = "Đang cầm";
+           }
+           break;
+      }
+
       return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-            isPledged
-              ? "bg-blue-100 text-blue-800 border border-blue-200"
-              : "bg-gray-100 text-gray-800 border border-gray-200"
-          }`}
-        >
-          {isPledged ? "Đang cầm" : status}
-        </span>
+        <Badge variant={badgeVariant} className="whitespace-nowrap">
+          {label}
+        </Badge>
       );
     },
   },
   {
     id: "actions",
     header: "Thao tác",
-    cell: ({ row }) => <LoanActions row={row} />,
+    cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}> 
+            <LoanActions row={row} />
+        </div>
+    ),
   },
 ];

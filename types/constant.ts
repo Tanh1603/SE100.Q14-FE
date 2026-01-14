@@ -1,4 +1,4 @@
-export type Role = "admin" | "manager" | "staff";
+export type Role = "admin" | "manager" | "staff" | "store_owner";
 
 // Role constant values
 export const ROLE = {

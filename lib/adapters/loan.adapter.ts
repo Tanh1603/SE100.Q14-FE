@@ -1,5 +1,5 @@
 import { BaseAdapter } from "./base.adapter";
-import { LoanDTO } from "@/types/dto/loan.dto";
+import { LoanDTO, LoanSummaryResponseDto } from "@/types/dto/loan.dto";
 import { loan, Asset } from "@/types/asset";
 import { AssetStatus, CustomerStatus, WarehouseStatus } from "@/types/enum";
 
@@ -69,19 +69,80 @@ export const LoanAdapter: BaseAdapter<loan, LoanDTO> = {
             mother: { fullName: "", phone: "", job: "" },
             spouse: { fullName: "", phone: "", job: "" }
         },
-        // Legacy fields if any (based on previous error log showing simple Customer type mismatch?)
-        // The error said: Type '{ ... }' is missing ... avatar, dob, phone, cccd, and 8 more.
-        // It listed 'gender', 'job', 'contractHistory', 'badHabit', 'notes', 'identityCardDate', 'identityCardPlace', 'tempReg' in the incompatible type I PROVIDED.
-        // Wait, the error message showed that I provided EXTRA fields that didn't exist in Customer (like 'contractHistory') AND missed fields that DID exist (like 'avatar').
-        // So I must REMOVE the extra fields I added in the previous version and ADD the missing ones.
       },
-    } as loan & { contractNumber: string }; // Casting to match UI expectations
+    } as loan & { contractNumber: string }; 
   },
 };
 
+export const LoanSummaryAdapter: BaseAdapter<loan & { contractNumber: string; status: string }, LoanSummaryResponseDto> = {
+    toDomain(dto: LoanSummaryResponseDto): loan & { contractNumber: string; status: string } {
+        // Map status
+        // API Status: PENDING, REJECTED, ACTIVE, CLOSED, OVERDUE
+        
+        let assetStatus = AssetStatus.PLEDGED;
+        if (dto.status === 'CLOSED') assetStatus = AssetStatus.LIQUIDATED; // Approximation
+        
+        const asset: Asset = {
+            id: `asset-${dto.id}`,
+            name: dto.loanTypeName || "Tài sản",
+            image: "",
+            assetType: {
+                id: "type-1",
+                name: dto.loanTypeName || "Loại tài sản",
+                isActive: true,
+                field: []
+            },
+            warehouses: {
+                id: "wh-1",
+                name: dto.storeName || "Kho",
+                address: "",
+                province: { id: "0", label: "" },
+                ward: { id: "0", label: "" },
+                status: WarehouseStatus.AVAILABLE,
+                fee: 0
+            },
+            status: assetStatus,
+            assetValue: []
+        };
+
+        return {
+            id: dto.id,
+            loanDate: dto.startDate,
+            totalLoan: dto.loanAmount,
+            interestPeriod: dto.durationMonths,
+            interestRate: 0, 
+            numberPayment: 0,
+            asset: asset,
+            customer: {
+                id: dto.customerId,
+                fullName: dto.customerName || `KH: ${dto.customerId.slice(0,6)}...`, // Use API name or fallback
+                avatar: "",
+                dob: "2000-01-01",
+                phone: dto.customerPhone || "",
+                cccd: "",
+                issueDate: "",
+                issuePlace: "",
+                address: "",
+                wardId: "",
+                provinceId: "",
+                permanentAddress: "",
+                email: "",
+                otherInfo: { job: "", workplace: "", income: "", emergencyContactName: "", emergencyContactPhone: "" },
+                status: CustomerStatus.NORMAL,
+                familyInfo: { father: { fullName: "", phone: "", job: "" }, mother: { fullName: "", phone: "", job: "" }, spouse: { fullName: "", phone: "", job: "" } }
+            },
+            contractNumber: dto.loanCode || dto.id,
+            status: dto.status // Keep original status string for UI badges
+        };
+    }
+}
+
 // Helper to handle the 'contractNumber' field which is effectively 'id' or derived
-export const LoanAdapterWithContractNumber: BaseAdapter<loan & { contractNumber: string }, LoanDTO> = {
-  toDomain(dto: LoanDTO): loan & { contractNumber: string } {
+export const LoanAdapterWithContractNumber: BaseAdapter<loan & { contractNumber: string }, any> = {
+  toDomain(dto: any): loan & { contractNumber: string } {
+      if (dto.loanCode) {
+          return LoanSummaryAdapter.toDomain(dto);
+      }
     const domain = LoanAdapter.toDomain(dto);
     return {
       ...domain,

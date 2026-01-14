@@ -31,33 +31,42 @@ mock-data/
 └── warehouse.ts       # Warehouse locations
 ```
 
-### Recommended API Layer Structure
+### Centralized API Layer Structure
 
-Create a new `/lib/api/` directory with the following structure:
+The `lib/api/` directory serves as the single source of truth for API interactions:
 
 ```
 lib/
 ├── api/
-│   ├── client.ts      # Axios/Fetch configuration
-│   ├── endpoints.ts   # API endpoint constants
-│   ├── types.ts       # API response types
-│   ├── customers.ts   # Customer API functions
-│   ├── contracts.ts   # Contract API functions
-│   ├── assets.ts      # Asset API functions
-│   ├── payments.ts    # Payment API functions
-│   ├── reports.ts     # Reports API functions
-│   └── index.ts       # Export all APIs
-└── hooks/
-    ├── use-customers.ts
-    ├── use-contracts.ts
-    └── use-assets.ts
+│   ├── client.ts      # Centralized Axios instance with interceptors
+│   ├── endpoints.ts   # API Endpoint constants
+│   └── index.ts       # (Optional) Export barrel
+└── adapters/          # THE ADAPTER LAYER
+    ├── base.adapter.ts
+    ├── loan.adapter.ts
+    └── payment.adapter.ts
 ```
 
 ---
 
 ## Setting Up API Client
 
-### Step 1: Create the API Client
+### Step 1: Configure Environment
+
+We have configured the ports as follows to avoid conflicts:
+
+- **Backend**: `http://localhost:3000` (API at `/api/v1`)
+- **Frontend**: `http://localhost:3001`
+
+**`.env` file:**:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+```
+
+### Step 2: The Centralized Client (`lib/api/client.ts`)
+
+We use **Axios** for its robust interceptor support.
 
 Create `lib/api/client.ts`:
 
@@ -66,7 +75,7 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 
 // Environment variable for API base URL
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
 // Create axios instance
 export const apiClient: AxiosInstance = axios.create({
@@ -121,51 +130,58 @@ export interface ApiError {
 }
 ```
 
-### Step 2: Define Endpoints
+### Step 3: Define Endpoints (`lib/api/endpoints.ts`)
 
 Create `lib/api/endpoints.ts`:
 
 ```typescript
 export const ENDPOINTS = {
-  // Customers
-  CUSTOMERS: "/customers",
-  CUSTOMER_BY_ID: (id: string) => `/customers/${id}`,
-
-  // Contracts
-  CONTRACTS: "/contracts",
-  CONTRACT_BY_ID: (id: string) => `/contracts/${id}`,
-  CONTRACT_QUICK_PAY: (id: string) => `/contracts/${id}/pay`,
-  CONTRACT_REFINANCE: (id: string) => `/contracts/${id}/refinance`,
-
-  // Assets
-  ASSETS: "/assets",
-  ASSET_BY_ID: (id: string) => `/assets/${id}`,
-  ASSET_TYPES: "/asset-types",
-
-  // Payments/Cashbook
+  LOANS: "/loans",
   PAYMENTS: "/payments",
-  CASHBOOK: "/cashbook",
-
-  // Warehouses
-  WAREHOUSES: "/warehouses",
-
-  // Reports
-  REPORTS_QUARTERLY: "/reports/quarterly",
-  REPORTS_REVENUE: "/reports/revenue",
-  REPORTS_POLICE: "/reports/police-book",
-
-  // Dashboard
-  DASHBOARD_STATS: "/dashboard/statistics",
-  UPCOMING_PAYMENTS: "/dashboard/upcoming-payments",
-
-  // Liquidation
-  LIQUIDATION_CANDIDATES: "/liquidation/candidates",
-  LIQUIDATION_PROCESS: (id: string) => `/liquidation/${id}/process`,
-
-  // Locations
-  PROVINCES: "/locations/provinces",
-  WARDS: (provinceId: string) => `/locations/provinces/${provinceId}/wards`,
+  // ...
 } as const;
+```
+
+---
+
+## Adapter Pattern Integration
+
+The **Adapter Pattern** is the core of our integration strategy. It decouples the Frontend (Domain) models from the Backend (DTO) models.
+
+### Workflow
+
+1.  **Service Layer** (`lib/loan.service.ts`) calls the API using `apiClient`.
+2.  **API** returns raw JSON data (DTOs).
+3.  **Service Layer** passes this data to the **Adapter**.
+4.  **Adapter** (`lib/adapters/loan.adapter.ts`) transforms DTOs -> Domain Models.
+5.  **Component** receives clean Domain Models.
+
+### Example: Loan Service
+
+```typescript
+import { apiClient } from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
+import { LoanAdapterWithContractNumber } from "@/lib/adapters/loan.adapter";
+import { PagedLoanResponseDTO } from "@/types/dto/loan.dto";
+
+export const LoanService = {
+  getAllLoans: async (page = 1, limit = 20) => {
+    // 1. Call API
+    const response = await apiClient.get<PagedLoanResponseDTO>(
+      ENDPOINTS.LOANS,
+      {
+        params: { page, limit },
+      }
+    );
+
+    // 2. Transform with Adapter
+    const dto = response.data;
+    return {
+      data: dto.data.map(LoanAdapterWithContractNumber.toDomain),
+      meta: dto.meta,
+    };
+  },
+};
 ```
 
 ---
@@ -173,8 +189,6 @@ export const ENDPOINTS = {
 ## Module-by-Module Integration
 
 ### 1. Customers Module
-
-**Current Mock:** `mock-data/customer.ts`
 
 **Create API functions:** `lib/api/customers.ts`
 
