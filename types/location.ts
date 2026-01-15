@@ -1,5 +1,5 @@
 export type Location = {
   id: string;
-  label: string;
-  value?: string;
+  code: string;
+  name?: string;
 };

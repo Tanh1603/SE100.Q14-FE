@@ -21,12 +21,21 @@ import { Edit, PlusCircle, Search, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { CustomerColumn } from "./columns";
 import CustomerForm from "./customer-form";
+import { useCustomers } from "@/hooks/use-customer";
 
 const CustomerPage = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [selectedCustomer, setSelectedCustomer] = useState<
     Customer | undefined
   >(undefined);
+  const {data, isLoading} = useCustomers();
+
+  if(isLoading) {
+    return <div>loading</div>
+  }
+
+  console.log(data);
+  
 
   return (
     // Removed SidebarInset

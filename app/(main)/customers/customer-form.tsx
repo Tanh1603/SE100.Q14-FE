@@ -1,6 +1,6 @@
+/* eslint-disable react-hooks/incompatible-library */
 "use client";
 
-/* eslint-disable react-hooks/incompatible-library */
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Form,
   FormControl,
   FormField,
@@ -18,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Added Import
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -27,19 +32,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mockLocations } from "@/mock-data/location";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea"; // Added Import
+import { useProvinces, useWardByProvince } from "@/hooks/use-location";
 import { Customer } from "@/types/customer";
 import { CUSTOMER_STATUS_OPTIONS } from "@/types/enum";
-import { IdCard, UsersRound, Briefcase, ChevronDown } from "lucide-react";
+import { Briefcase, ChevronDown, IdCard, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type CustomerFormProps = {
   initialCustomer?: Customer | null;
@@ -49,6 +50,8 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
   const form = useForm<Customer>({
     defaultValues: initialCustomer || {},
   });
+
+  const { data: provinces = [], isLoading: provinceLoading } = useProvinces();
 
   // Avatar state
   const [avatar, setAvatar] = useState<string | undefined | undefined>(
@@ -72,8 +75,10 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
   // handle locations
   const provinceId = form.watch("provinceId");
-  const selectedProvince = mockLocations.find((p) => p.id === provinceId);
-  const wards = selectedProvince?.wards ?? [];
+  const selectedProvince = provinces?.find((p) => p.id === provinceId);
+  const provinceCode = selectedProvince?.code ?? "";
+  const { data: wards = [], isLoading: wardsLoading } =
+    useWardByProvince(provinceCode);
 
   // handle submit
   const onSubmit = (data: Customer) => {
@@ -314,7 +319,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Địa chỉ hiện tại (Số nhà, đường...)
+                          Địa chỉ hiện tại
                           <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
@@ -340,21 +345,28 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                         <FormControl>
                           <Select
                             value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              form.setValue("wardId", "");
-                            }}
+                            onValueChange={field.onChange}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Chọn Tỉnh/Thành" />
                             </SelectTrigger>
 
-                            <SelectContent>
-                              {mockLocations.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.label}
+                            <SelectContent className="h-[200px]">
+                              {provinceLoading ? (
+                                <SelectItem
+                                  className="flex items-center justify-center h-full"
+                                  value="loading"
+                                  disabled
+                                >
+                                  <Spinner />
                                 </SelectItem>
-                              ))}
+                              ) : (
+                                provinces?.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -380,12 +392,22 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                               <SelectValue placeholder="Chọn Phường/Xã" />
                             </SelectTrigger>
 
-                            <SelectContent>
-                              {wards.map((w) => (
-                                <SelectItem key={w.id} value={w.id}>
-                                  {w.label}
+                            <SelectContent className="h-[200px]">
+                              {wardsLoading ? (
+                                <SelectItem
+                                  className="flex items-center justify-center h-full"
+                                  value="loading"
+                                  disabled
+                                >
+                                  <Spinner />
                                 </SelectItem>
-                              ))}
+                              ) : (
+                                wards?.map((w) => (
+                                  <SelectItem key={w.id} value={w.id}>
+                                    {w.name}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </FormControl>
