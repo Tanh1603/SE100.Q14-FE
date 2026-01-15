@@ -45,7 +45,11 @@ export function usePayments(initialParams: PaymentListParams = {}) {
     error: null,
   });
 
-  const [params, setParams] = useState<PaymentListParams>(initialParams);
+  const [params, setParams] = useState<PaymentListParams>({
+      sortBy: "paidAt",
+      sortOrder: "desc",
+      ...initialParams
+  });
 
   const fetchPayments = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));

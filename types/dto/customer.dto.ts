@@ -1,31 +1,48 @@
 export interface CustomerDTO {
   id: string;
-  full_name: string;
-  date_of_birth: string;
-  phone_number: string;
+  fullName: string;
+  dob: string;
+  phone: string;
   email?: string;
-  identity_number: string;
-  issue_date: string;
-  issue_place: string;
+  nationalId: string; // Changed from identity_number to match OpenAPI
+  nationalIdIssueDate: string; // Changed from issue_date
+  nationalIdIssuePlace: string; // Changed from issue_place
   address: string;
-  ward_id: string;
-  province_id: string;
-  permanent_address: string;
-  status: string; // Backend might send string, adapter converts to Enum
-  other_info?: {
-    job: string;
-    workplace: string;
-    income: string;
-    emergency_contact_name: string;
-    emergency_contact_phone: string;
-  };
-  family_info?: {
-    father?: { full_name: string; phone: string; job: string };
-    mother?: { full_name: string; phone: string; job: string };
-    spouse?: { full_name: string; phone: string; job: string };
-  };
-  created_at?: string;
-  updated_at?: string;
+  wardId?: string; // These might be camelCase too, checking usage
+  provinceId?: string;
+  permanentAddress?: string; // Check if exists in OpenAPI
+  status: string; 
+  monthlyIncome?: number;
+  creditScore?: number;
+  
+  // Based on OpenAPI CustomerResponse:
+  // fatherName, fatherPhone, fatherOccupation... flattened?
+  // Or kept as objects? 
+  // The OpenAPI spec showed flattened fields like fatherName, fatherPhone.
+  // But let's check what I saw in openapi.yml earlier.
+  
+  // Re-checking openapi.yml content in memory...
+  // CustomerResponse properties:
+  // fatherName, fatherPhone, fatherOccupation...
+  // So it is NOT nested objects 'family_info'.
+  
+  fatherName?: string;
+  fatherPhone?: string;
+  fatherOccupation?: string;
+  motherName?: string;
+  motherPhone?: string;
+  motherOccupation?: string;
+  spouseName?: string;
+  spousePhone?: string;
+  spouseOccupation?: string;
+  
+  occupation?: string; // from openapi
+  workplace?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PagedCustomerResponseDTO {

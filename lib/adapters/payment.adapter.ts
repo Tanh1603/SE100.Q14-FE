@@ -1,11 +1,10 @@
 import {
   PaymentDTO,
-  PaymentAllocationDTO,
   PagedResponseDTO,
+  PaymentAllocationDTO,
 } from "@/types/dto/payment.dto";
 import {
   Payment,
-  PaymentAllocation,
   PaymentListResponse,
   CreatePaymentRequest,
 } from "@/types/payment";
@@ -15,32 +14,37 @@ export const PaymentAdapter: BaseAdapter<Payment, PaymentDTO> = {
   toDomain(dto: PaymentDTO): Payment {
     return {
       id: dto.id,
-      loanId: dto.loan_id,
+      loanId: dto.loanId,
       amount: dto.amount,
-      flow: dto.flow,
-      paymentMethod: dto.payment_method,
-      paymentType: dto.payment_type,
-      referenceCode: dto.reference_code,
+      flow: dto.flow || "IN", // Default to IN for Payments endpoint
+      paymentMethod: dto.paymentMethod,
+      paymentType: dto.paymentType,
+      referenceCode: dto.referenceCode,
       notes: dto.notes,
-      paidAt: dto.paid_at,
-      createdAt: dto.created_at,
-      updatedAt: dto.updated_at,
+      paidAt: dto.paidAt,
+      createdAt: dto.createdAt,
+      updatedAt: dto.updatedAt,
       // Map nested array safely
       allocations: dto.allocations?.map((a: PaymentAllocationDTO) => ({
-        periodNumber: a.period_number,
+        periodNumber: a.periodNumber,
         component: a.component,
         amount: a.amount,
         description: a.description,
       })),
-      // Map nested object safely
+      // Map nested object safely OR construct from root fields
       loan: dto.loan
         ? {
             id: dto.loan.id,
-            contractNumber: dto.loan.contract_number,
-            customerName: dto.loan.customer_name,
-            outstandingBalance: dto.loan.outstanding_balance,
+            contractNumber: dto.loan.contractNumber,
+            customerName: dto.loan.customerName,
+            outstandingBalance: dto.loan.outstandingBalance,
           }
-        : undefined,
+        : {
+            id: dto.loanId,
+            contractNumber: undefined, // Will be enriched by service
+            customerName: dto.customerName, // Mapped from root
+            outstandingBalance: 0
+        },
     };
   },
 
@@ -48,7 +52,7 @@ export const PaymentAdapter: BaseAdapter<Payment, PaymentDTO> = {
   toDTO(domain: Partial<Payment>): Partial<PaymentDTO> {
     return {
       id: domain.id,
-      loan_id: domain.loanId,
+      loanId: domain.loanId,
       amount: domain.amount,
       notes: domain.notes,
       // ... map others as needed
@@ -65,16 +69,16 @@ export const PaymentResponseAdapter = {
     return {
       data: dto.data.map(PaymentAdapter.toDomain),
       meta: {
-        totalItems: dto.meta.total_items,
-        totalPages: dto.meta.total_pages,
-        currentPage: dto.meta.current_page,
+        totalItems: dto.meta.totalItems,
+        totalPages: dto.meta.totalPages,
+        currentPage: dto.meta.currentPage,
         limit: dto.meta.limit,
       },
       stats: dto.stats
         ? {
-            totalMoney: dto.stats.total_money,
-            totalIncome: dto.stats.total_income,
-            totalExpense: dto.stats.total_expense,
+            totalMoney: dto.stats.totalMoney,
+            totalIncome: dto.stats.totalIncome,
+            totalExpense: dto.stats.totalExpense,
           }
         : undefined,
     };
@@ -88,13 +92,15 @@ export const PaymentResponseAdapter = {
 export const CreatePaymentAdapter = {
   toPayload(request: CreatePaymentRequest): any {
     return {
-      loan_id: request.loanId,
+      loanId: request.loanId,
       amount: request.amount,
-      payment_method: request.paymentMethod,
-      payment_type: request.paymentType,
-      reference_code: request.referenceCode,
+      paymentMethod: request.paymentMethod,
+      paymentType: request.paymentType,
       notes: request.notes,
-      transaction_date: request.transactionDate,
+      // transactionDate is not in OpenAPI PaymentRequestDto, but keeping it if needed or removing if strictly adhering to spec.
+      // OpenAPI doesn't list it, so it might be ignored by backend.
+      // Checked openapi: PaymentRequestDto has loanId, amount, paymentMethod, paymentType, notes.
+      // So I will only include these.
     };
   },
 };

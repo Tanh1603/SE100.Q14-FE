@@ -100,7 +100,7 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
           (c: NotificationLogResponse) => ({
             id: c.id,
             type: "COMMUNICATION",
-            date: c.sentAt || c.createdAt,
+            date: c.sentAt || c.createdAt || new Date().toISOString(),
             amount: 0,
             description: `${c.type}: ${c.subject || c.message || c.notes}`,
             status: c.status,
@@ -203,6 +203,17 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
   );
 }
 
+const safeFormatDate = (dateStr: string | undefined | null) => {
+  if (!dateStr) return "N/A";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    return format(date, "dd/MM/yyyy HH:mm");
+  } catch (e) {
+    return "Error";
+  }
+};
+
 function TransactionTable({
   items,
   getIcon,
@@ -234,9 +245,7 @@ function TransactionTable({
           {items.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{getIcon(item.type, item.flow)}</TableCell>
-              <TableCell>
-                {format(new Date(item.date), "dd/MM/yyyy HH:mm")}
-              </TableCell>
+              <TableCell>{safeFormatDate(item.date)}</TableCell>
               <TableCell className="font-medium">{item.description}</TableCell>
               <TableCell className="text-right">
                 {item.amount && item.amount > 0 ? (

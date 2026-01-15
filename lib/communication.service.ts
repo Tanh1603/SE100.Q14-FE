@@ -6,24 +6,36 @@ import {
   NotificationLogResponse,
 } from "@/types/dto/communication.dto";
 
-export interface LogCommunicationDto {
-  loanId: string;
-  type: "INTEREST_REMINDER" | "OVERDUE_REMINDER";
-  channel: "PHONE_CALL" | "SMS";
-  status: "PENDING" | "SENT" | "DELIVERED" | "FAILED" | "ANSWERED" | "NO_ANSWER" | "PROMISE_TO_PAY";
-  notes?: string;
-  promiseToPayDate?: string; // YYYY-MM-DD
-  subject?: string;
-}
+// Type alias for Promise to Pay items - these are NotificationLogResponse records
+// with status="PROMISE_TO_PAY" and promiseToPayDate populated
+export type PromiseToPayItem = NotificationLogResponse;
 
 export const CommunicationService = {
-  log: async (data: LogCommunicationDto): Promise<any> => {
+  log: async (data: LogCommunicationDto): Promise<NotificationLogResponse> => {
     const response = await apiClient.post(ENDPOINTS.COMMUNICATIONS_LOG, data);
     return response.data;
   },
 
-  getPromisesToPay: async (params?: { fromDate?: string; toDate?: string }): Promise<any[]> => {
-    const response = await apiClient.get("/communications/promises-to-pay", { params });
+  getPromisesToPay: async (params?: {
+    fromDate?: string;
+    toDate?: string;
+  }): Promise<PromiseToPayItem[]> => {
+    const response = await apiClient.get<PromiseToPayItem[]>(
+      ENDPOINTS.COMMUNICATIONS_PROMISES_TO_PAY,
+      { params }
+    );
+    return response.data;
+  },
+
+  getLogsByLoanId: async (
+    loanId: string
+  ): Promise<NotificationLogResponse[]> => {
+    const response = await apiClient.get<NotificationLogResponse[]>(
+      ENDPOINTS.COMMUNICATIONS_HISTORY(loanId)
+    );
     return response.data;
   },
 };
+
+// Re-export for backward compatibility
+export type { LogCommunicationDto };

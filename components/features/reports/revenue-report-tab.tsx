@@ -131,30 +131,31 @@ const RevenueReportTab = () => {
     })
   );
 
-  const pieData = data
-    ? [
-        {
-          name: "Lãi vay",
-          value: data.summary.totalInterest,
-          color: "#22c55e",
-        },
-        {
-          name: "Thanh lý",
-          value: data.summary.totalLiquidationExcess,
-          color: "#3b82f6",
-        },
-        {
-          name: "Phí dịch vụ",
-          value: data.summary.totalServiceFee,
-          color: "#eab308",
-        },
-        {
-          name: "Phạt quá hạn",
-          value: data.summary.totalLateFee,
-          color: "#9ca3af",
-        },
-      ].filter((i) => i.value > 0)
-    : [];
+  const pieData =
+    data && data.summary
+      ? [
+          {
+            name: "Lãi vay",
+            value: data.summary.totalInterest,
+            color: "#22c55e",
+          },
+          {
+            name: "Thanh lý",
+            value: data.summary.totalLiquidationExcess,
+            color: "#3b82f6",
+          },
+          {
+            name: "Phí dịch vụ",
+            value: data.summary.totalServiceFee,
+            color: "#eab308",
+          },
+          {
+            name: "Phạt quá hạn",
+            value: data.summary.totalLateFee,
+            color: "#9ca3af",
+          },
+        ].filter((i) => i.value > 0)
+      : [];
 
   return (
     <div className="space-y-6">
@@ -258,7 +259,7 @@ const RevenueReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatCurrency(data.summary.totalRevenue)}
+                    {formatCurrency(data.summary?.totalRevenue)}
                   </div>
                 </CardContent>
               </Card>
@@ -272,7 +273,7 @@ const RevenueReportTab = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600 font-mono">
                     {formatCurrency(
-                      data.summary.totalRevenue - data.summary.totalExpense
+                      (data.summary?.totalRevenue || 0) - (data.summary?.totalExpense || 0)
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -289,7 +290,7 @@ const RevenueReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600 font-mono">
-                    {formatCurrency(data.summary.totalExpense)}
+                    {formatCurrency(data.summary?.totalExpense)}
                   </div>
                 </CardContent>
               </Card>
@@ -302,7 +303,7 @@ const RevenueReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600 font-mono">
-                    {formatCurrency(data.summary.totalLoanDisbursement)}
+                    {formatCurrency(data.summary?.totalLoanDisbursement)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Vốn đã chi ra
@@ -424,8 +425,9 @@ const RevenueReportTab = () => {
                           </div>
                           <span className="font-semibold">
                             {(
-                              (item.value / data.summary.totalRevenue) *
-                              100
+                              data.summary?.totalRevenue 
+                                ? (item.value / data.summary.totalRevenue) * 100 
+                                : 0
                             ).toFixed(1)}
                             %
                           </span>

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import {
   Card,
@@ -12,13 +10,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -28,9 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, Clock, MessageSquare } from "lucide-react";
+import { CreditCard, MessageSquare } from "lucide-react";
 import { LoanDetailDTO } from "@/types/dto/loan.dto";
 import { CommunicationService } from "@/lib/communication.service";
+import { PaymentDialog } from "@/components/features/payment/payment-dialog";
 import {
   NotificationType,
   NotificationChannel,
@@ -46,7 +43,7 @@ export function ActionPanel({ loan, onRefresh }: ActionPanelProps) {
   const [isPayOpen, setIsPayOpen] = useState(false);
   const [isCommOpen, setIsCommOpen] = useState(false);
 
-  // Mock Communication Form State
+  // Communication Form State
   const [commType, setCommType] =
     useState<NotificationType>("INTEREST_REMINDER");
   const [commChannel, setCommChannel] =
@@ -84,71 +81,21 @@ export function ActionPanel({ loan, onRefresh }: ActionPanelProps) {
       </CardHeader>
       <CardContent className="flex flex-wrap gap-4">
         {/* Payment Button */}
-        <Dialog open={isPayOpen} onOpenChange={setIsPayOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex-1 min-w-[150px] gap-2">
-              <CreditCard className="h-4 w-4" />
-              Thanh toán / Đóng lãi
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thanh toán nhanh</DialogTitle>
-              <DialogDescription>
-                Ghi nhận thanh toán cho hợp đồng {loan.loanCode}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Số tiền</Label>
-                <Input
-                  type="number"
-                  className="col-span-3"
-                  placeholder="Nhập số tiền"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Loại</Label>
-                <Select defaultValue="PERIODIC">
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Chọn loại" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PERIODIC">Đóng lãi định kỳ</SelectItem>
-                    <SelectItem value="EARLY">Trả gốc một phần</SelectItem>
-                    <SelectItem value="PAYOFF">Tất toán</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Ghi chú</Label>
-                <Textarea className="col-span-3" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => {
-                  setIsPayOpen(false);
-                  alert("Tính năng đang được tích hợp API thanh toán");
-                }}
-              >
-                Xác nhận
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Extension Button (Mocked) */}
         <Button
-          variant="outline"
           className="flex-1 min-w-[150px] gap-2"
-          onClick={() =>
-            alert("Tính năng Gia hạn chưa được hỗ trợ bởi hệ thống lõi.")
-          }
+          onClick={() => setIsPayOpen(true)}
         >
-          <Clock className="h-4 w-4" />
-          Gia hạn hợp đồng
+          <CreditCard className="h-4 w-4" />
+          Thanh toán / Đóng lãi
         </Button>
+
+        <PaymentDialog
+          open={isPayOpen}
+          onOpenChange={setIsPayOpen}
+          loanId={loan.id}
+          loanCode={loan.loanCode || ""}
+          onSuccess={onRefresh}
+        />
 
         {/* Communication Button */}
         <Dialog open={isCommOpen} onOpenChange={setIsCommOpen}>

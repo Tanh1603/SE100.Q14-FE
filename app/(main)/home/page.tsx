@@ -27,13 +27,13 @@ import {
   RepaymentScheduleService,
   RepaymentScheduleItemResponse,
 } from "@/lib/repayment-schedule.service";
-import { CommunicationService } from "@/lib/communication.service";
+import {
+  CommunicationService,
+  PromiseToPayItem,
+} from "@/lib/communication.service";
 import { PaymentServiceReal } from "@/lib/payment.service";
 import { LoanService } from "@/lib/loan.service";
-import { ContractCommandPanel } from "@/components/features/loan/contract-command-panel";
 import { LogCommunicationDialog } from "@/components/features/communication/log-communication-dialog";
-import { loan } from "@/types/asset";
-import { toast } from "sonner";
 
 // Helper function to format currency
 const formatCurrency = (amount: number): string => {
@@ -54,14 +54,10 @@ const HomePage = () => {
   const [overdueItems, setOverdueItems] = useState<
     RepaymentScheduleItemResponse[]
   >([]);
-  const [promisesToPay, setPromisesToPay] = useState<any[]>([]);
+  const [promisesToPay, setPromisesToPay] = useState<PromiseToPayItem[]>([]);
   const [isLoadingOverdue, setIsLoadingOverdue] = useState(true);
 
   // Dialog State
-  const [openCommandPanel, setOpenCommandPanel] = useState(false);
-  const [selectedContract, setSelectedContract] = useState<
-    (loan & { contractNumber?: string }) | null
-  >(null);
   const [openLogDialog, setOpenLogDialog] = useState(false);
   const [selectedLogItem, setSelectedLogItem] =
     useState<RepaymentScheduleItemResponse | null>(null);
@@ -170,20 +166,7 @@ const HomePage = () => {
       .catch(console.error);
   };
 
-  const handleQuickPay = (loan: any) => {
-    // Using any for simplicity as loan mapping is tricky here
-    // In real app, we need to fetch full loan details first or map correctly
-    // Here assuming RepaymentScheduleItemResponse -> partial Loan
-    const mockLoan: any = {
-      id: loan.loanId,
-      contractNumber: loan.contractCode,
-      customer: { fullName: loan.customerName },
-      totalLoan: 0,
-      interestRate: 0,
-    };
-    setSelectedContract(mockLoan);
-    setOpenCommandPanel(true);
-  };
+  // Quick pay handler removed - using LogCommunicationDialog for call tracking instead
 
   return (
     <div className="mx-5 pb-10">
@@ -430,14 +413,6 @@ const HomePage = () => {
           </Card>
         </div>
       </div>
-
-      <ContractCommandPanel
-        open={openCommandPanel}
-        onOpenChange={setOpenCommandPanel}
-        contract={selectedContract}
-        onPaymentSuccess={() => setOpenCommandPanel(false)}
-        onRefinanceSuccess={() => setOpenCommandPanel(false)}
-      />
 
       {selectedLogItem && (
         <LogCommunicationDialog

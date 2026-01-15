@@ -5,7 +5,7 @@ import type {
   CreatePaymentRequest,
   LoanSummary,
 } from "@/types/payment";
-import { mockPayments, mockLoans } from "@/mock-data/payment";
+
 import {
   PaymentResponseAdapter,
   PaymentAdapter,
@@ -62,7 +62,37 @@ export const PaymentServiceReal = {
       ENDPOINTS.PAYMENTS,
       { params: queryParams }
     );
-    return PaymentResponseAdapter.toDomain(response.data);
+    
+    const domainData = PaymentResponseAdapter.toDomain(response.data);
+
+    // Enrichment: Fetch Loan Codes
+    const uniqueLoanIds = Array.from(new Set(domainData.data.map(p => p.loanId).filter(Boolean)));
+    const loanMap = new Map<string, string>(); // loanId -> contractNumber
+
+    await Promise.all(uniqueLoanIds.map(async (id) => {
+        try {
+             // Fetch loan details to get the code
+             const res = await apiClient.get(ENDPOINTS.LOAN_BY_ID(id));
+             // Handle both wrapped { data: ... } and direct responses just in case
+             const loanData = res.data.data || res.data;
+             if (loanData && loanData.loanCode) {
+                 loanMap.set(id, loanData.loanCode);
+             }
+        } catch (e) { 
+            // console.error(`Failed to fetch loan ${id} for payment enrichment`, e); 
+        }
+    }));
+
+    // Apply enriched contract numbers
+    domainData.data = domainData.data.map(p => ({
+        ...p,
+        loan: p.loan ? { 
+            ...p.loan, 
+            contractNumber: loanMap.get(p.loanId) || p.loan.contractNumber 
+        } : undefined
+    }));
+
+    return domainData;
   },
 
   createPayment: async (
@@ -86,122 +116,28 @@ export const PaymentServiceReal = {
 /**
  * Fetch paginated list of payments with optional filters
  */
+/**
+ * Fetch paginated list of payments with optional filters
+ */
 export async function getPayments(
   params: PaymentListParams = {}
 ): Promise<PaymentListResponse> {
-  // To switch to real API: return PaymentServiceReal.getPayments(params);
-
-  // Mock implementation
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredPayments = [...mockPayments];
-
-      // Apply filters
-      if (params.search) {
-        const searchLower = params.search.toLowerCase();
-        filteredPayments = filteredPayments.filter(
-          (p) =>
-            p.referenceCode?.toLowerCase().includes(searchLower) ||
-            p.loan?.customerName?.toLowerCase().includes(searchLower) ||
-            p.loan?.contractNumber?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      if (params.loanId) {
-        filteredPayments = filteredPayments.filter(
-          (p) => p.loanId === params.loanId
-        );
-      }
-
-      if (params.paymentMethod) {
-        filteredPayments = filteredPayments.filter(
-          (p) => p.paymentMethod === params.paymentMethod
-        );
-      }
-
-      if (params.paymentType) {
-        filteredPayments = filteredPayments.filter(
-          (p) => p.paymentType === params.paymentType
-        );
-      }
-
-      if (params.dateFrom) {
-        filteredPayments = filteredPayments.filter(
-          (p) => new Date(p.paidAt) >= new Date(params.dateFrom!)
-        );
-      }
-
-      if (params.dateTo) {
-        filteredPayments = filteredPayments.filter(
-          (p) => new Date(p.paidAt) <= new Date(params.dateTo!)
-        );
-      }
-
-      if (params.minAmount !== undefined) {
-        filteredPayments = filteredPayments.filter(
-          (p) => p.amount >= params.minAmount!
-        );
-      }
-
-      if (params.maxAmount !== undefined) {
-        filteredPayments = filteredPayments.filter(
-          (p) => p.amount <= params.maxAmount!
-        );
-      }
-
-      // Pagination
-      const page = params.page || 1;
-      const limit = params.limit || 10;
-      const startIndex = (page - 1) * limit;
-      const paginatedPayments = filteredPayments.slice(
-        startIndex,
-        startIndex + limit
-      );
-
-      // Calculate stats
-      const totalMoney = mockPayments.reduce((acc, p) => {
-        return acc + (p.flow === "IN" ? p.amount : -p.amount);
-      }, 0);
-
-      const totalIncome = filteredPayments.reduce((acc, p) => {
-        return acc + (p.flow === "IN" ? p.amount : 0);
-      }, 0);
-
-      const totalExpense = filteredPayments.reduce((acc, p) => {
-        return acc + (p.flow === "OUT" ? p.amount : 0);
-      }, 0);
-
-      resolve({
-        data: paginatedPayments,
-        meta: {
-          totalItems: filteredPayments.length,
-          totalPages: Math.ceil(filteredPayments.length / limit),
-          currentPage: page,
-          limit,
-        },
-        stats: {
-          totalMoney,
-          totalIncome,
-          totalExpense,
-        },
-      });
-    }, 300);
-  });
+  return PaymentServiceReal.getPayments(params);
 }
 
 /**
  * Get a single payment by ID
  */
 export async function getPaymentById(id: string): Promise<Payment | null> {
-  // TODO: Replace with actual API call
-  // return apiFetch<Payment>(`/payments/${id}`);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const payment = mockPayments.find((p) => p.id === id);
-      resolve(payment || null);
-    }, 200);
-  });
+  try {
+    const response = await apiClient.get<PaymentDTO>(
+      `${ENDPOINTS.PAYMENTS}/${id}`
+    );
+    return PaymentAdapter.toDomain(response.data);
+  } catch (error) {
+    console.error("Error fetching payment", error);
+    return null;
+  }
 }
 
 /**
@@ -212,82 +148,7 @@ export async function createPayment(
   data: CreatePaymentRequest,
   idempotencyKey: string
 ): Promise<Payment> {
-  // To switch to real API: return PaymentServiceReal.createPayment(data, idempotencyKey);
-
-  // Mock implementation
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Validate amount
-      if (data.amount <= 0) {
-        reject(new Error("Số tiền thanh toán phải lớn hơn 0"));
-        return;
-      }
-
-      // Mock payoff validation
-      if (data.paymentType === "PAYOFF") {
-        const loan = mockLoans.find((l) => l.id === data.loanId);
-        if (loan && data.amount < loan.outstandingBalance) {
-          reject(
-            new Error(
-              `Số tiền tất toán phải bằng tổng dư nợ: ${formatCurrency(
-                loan.outstandingBalance
-              )}`
-            )
-          );
-          return;
-        }
-      }
-
-      // Create mock payment
-      const loan = mockLoans.find((l) => l.id === data.loanId);
-      const now = new Date().toISOString();
-      const paidAt = data.transactionDate
-        ? new Date(data.transactionDate).toISOString()
-        : now;
-
-      // Mock waterfall allocation
-      const interestAmount = Math.floor(data.amount * 0.2);
-      const principalAmount = data.amount - interestAmount;
-
-      const newPayment: Payment = {
-        id: `pay-${Date.now()}`,
-        loanId: data.loanId,
-        amount: data.amount,
-        flow: "IN",
-        paymentMethod: data.paymentMethod,
-        paymentType: data.paymentType,
-        referenceCode: data.referenceCode || `RC-${Date.now()}`,
-        notes: data.notes,
-        paidAt: paidAt,
-        createdAt: now,
-        updatedAt: now,
-        allocations: [
-          {
-            periodNumber: 1,
-            component: "INTEREST",
-            amount: interestAmount,
-            description: "Tiền lãi",
-          },
-          {
-            periodNumber: 1,
-            component: "PRINCIPAL",
-            amount: principalAmount,
-            description: "Tiền gốc",
-          },
-        ],
-        loan: loan
-          ? {
-              id: loan.id,
-              contractNumber: loan.contractNumber,
-              customerName: loan.customerName,
-              outstandingBalance: loan.outstandingBalance - data.amount,
-            }
-          : undefined,
-      };
-
-      resolve(newPayment);
-    }, 500);
-  });
+  return PaymentServiceReal.createPayment(data, idempotencyKey);
 }
 
 // ============== Loan API Services ==============
@@ -296,27 +157,23 @@ export async function createPayment(
  * Get list of loans for select dropdown
  */
 export async function getLoans(): Promise<LoanSummary[]> {
-  // TODO: Replace with actual API call
-  // return apiFetch<LoanSummary[]>("/loans/summary");
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockLoans);
-    }, 200);
-  });
+  // This seems to be a lightweight list, potentially different from LoanService.getAllLoans
+  // For now, let's try to fetch from the main loans endpoint or a summary endpoint if it existed
+  // Using loose typing to avoid circular deps or complex mapping if LoanService is better suited
+  const response = await apiClient.get(ENDPOINTS.LOANS);
+  // Simplified mapping assuming response structure
+  return response.data.data || [];
 }
 
 /**
  * Get loan details by ID
  */
 export async function getLoanById(id: string): Promise<LoanSummary | null> {
-  // TODO: Replace with actual API call
-  // return apiFetch<LoanSummary>(`/loans/${id}`);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const loan = mockLoans.find((l) => l.id === id);
-      resolve(loan || null);
-    }, 200);
-  });
+  try {
+    const response = await apiClient.get(`${ENDPOINTS.LOANS}/${id}`);
+    return response.data.data; // Adapting to the { data: ... } wrapper seen earlier
+  } catch (error) {
+    console.error("Error fetching loan", error);
+    return null;
+  }
 }

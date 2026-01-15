@@ -11,19 +11,23 @@ import {
   Wallet,
   Warehouse,
   FileWarning,
+  ClipboardCheck,
+  Settings,
 } from "lucide-react";
 
 export type MenuIcon =
   | "home"
   | "contracts"
   | "contracts-overdue"
+  | "loan-approval"
   | "customers"
   | "assets"
   | "cashbook"
   | "reports"
   | "staff"
   | "branch"
-  | "warehouse";
+  | "warehouse"
+  | "settings";
 
 export interface MenuItem {
   title: string;
@@ -45,6 +49,7 @@ export const iconMap = {
   home: LayoutDashboard,
   contracts: FileSignature,
   "contracts-overdue": FileWarning,
+  "loan-approval": ClipboardCheck,
   customers: Users,
   assets: Archive,
   cashbook: Wallet,
@@ -53,6 +58,7 @@ export const iconMap = {
   staff: UserCog,
   branch: Store,
   warehouse: Warehouse,
+  settings: Settings,
 };
 
 export const menuConfig: MenuItem[] = [
@@ -71,6 +77,13 @@ export const menuConfig: MenuItem[] = [
     href: "/contracts",
     icon: "contracts",
     roles: ["admin", "manager", "staff"],
+  },
+
+  {
+    title: "Duyệt vay",
+    href: "/loans/management",
+    icon: "loan-approval",
+    roles: ["admin", "manager"],
   },
 
   {
@@ -133,6 +146,14 @@ export const menuConfig: MenuItem[] = [
     title: "Quản lý chi nhánh",
     href: "/branches",
     icon: "branch",
+    roles: ["admin"],
+  },
+
+  // Settings
+  {
+    title: "Cài đặt hệ thống",
+    href: "/settings/system",
+    icon: "settings",
     roles: ["admin"],
   },
 ];

@@ -14,7 +14,8 @@ export const ReportService = {
         params: { date, storeId },
       }
     );
-    return data;
+    // Handle potential wrapper
+    return (data as any).data || data;
   },
 
   getQuarterlyReport: async (year: number, quarter: number, storeId?: string) => {
@@ -24,7 +25,8 @@ export const ReportService = {
         params: { year, quarter, storeId }, // storeId added as requested
       }
     );
-    return data;
+    // Handle potential wrapper
+    return (data as any).data || data;
   },
 
   getRevenueReport: async (
@@ -38,6 +40,12 @@ export const ReportService = {
         params: { startDate, endDate, storeId },
       }
     );
+    // Handle potential wrapper. RevenueReportListResponse has a 'data' array property.
+    // If wrapped: data.data is an Object (the actual response).
+    // If unwrapped: data.data is an Array.
+    if ((data as any).data && !Array.isArray((data as any).data)) {
+      return (data as any).data;
+    }
     return data;
   },
 };

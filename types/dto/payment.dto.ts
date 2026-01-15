@@ -18,7 +18,7 @@ export type PaymentFlowDTO = "IN" | "OUT";
 
 // Allocation in DTO
 export interface PaymentAllocationDTO {
-  period_number: number;
+  periodNumber: number;
   component: PaymentComponentDTO;
   amount: number;
   description?: string;
@@ -27,24 +27,26 @@ export interface PaymentAllocationDTO {
 // Nested Loan DTO
 export interface PaymentLoanDTO {
   id: string;
-  contract_number?: string;
-  customer_name?: string;
-  outstanding_balance?: number;
+  contractNumber?: string;
+  customerName?: string;
+  outstandingBalance?: number;
 }
 
 // Main Payment DTO (The Raw API Response)
 export interface PaymentDTO {
   id: string;
-  loan_id: string;
+  loanId: string;
   amount: number;
-  flow: PaymentFlowDTO;
-  payment_method: PaymentMethodDTO;
-  payment_type: PaymentTypeDTO;
-  reference_code?: string;
+  flow?: PaymentFlowDTO; // API might not return this for pure Payment endpoints
+  paymentMethod: PaymentMethodDTO;
+  paymentType: PaymentTypeDTO;
+  referenceCode?: string;
+  customerName?: string; // Added from API response
+  customerPhone?: string; // Added from API response
   notes?: string;
-  paid_at: string; // ISO String
-  created_at: string;
-  updated_at: string;
+  paidAt: string; // ISO String
+  createdAt: string;
+  updatedAt: string;
   allocations?: PaymentAllocationDTO[];
   loan?: PaymentLoanDTO;
 }
@@ -53,14 +55,14 @@ export interface PaymentDTO {
 export interface PagedResponseDTO<T> {
   data: T[];
   meta: {
-    total_items: number;
-    total_pages: number;
-    current_page: number;
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
     limit: number;
   };
   stats?: {
-    total_money: number;
-    total_income: number;
-    total_expense: number;
+    totalMoney: number;
+    totalIncome: number;
+    totalExpense: number;
   };
 }

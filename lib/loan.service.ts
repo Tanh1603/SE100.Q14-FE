@@ -14,13 +14,16 @@ export type LoanListResponse = {
   };
 };
 
+import { CustomerService } from "@/lib/customer.service";
+
 export const LoanService = {
   getAllLoans: async (
     page: number = 1,
     limit: number = 20,
     search?: string,
     status?: string,
-    storeId?: string
+    storeId?: string,
+    customerId?: string
   ): Promise<LoanListResponse> => {
     // Construct query parameters
     const params: any = {
@@ -30,6 +33,7 @@ export const LoanService = {
     if (search) params.q = search;
     if (status && status !== "ALL") params.status = status;
     if (storeId && storeId !== "ALL") params.storeId = storeId;
+    if (customerId && customerId !== "ALL") params.customerId = customerId;
 
     const response = await apiClient.get<PagedLoanResponseDTO>(
       ENDPOINTS.LOANS,
@@ -40,8 +44,40 @@ export const LoanService = {
 
     const dto = response.data;
 
+    // Workaround for missing customer names in API response
+    // Fetch customer details for each loan (optimizing for unique IDs)
+    const uniqueCustomerIds = Array.from(
+      new Set(dto.data.map((l) => l.customerId))
+    );
+
+    const customerMap = new Map<string, { name: string; phone: string }>();
+
+    await Promise.all(
+      uniqueCustomerIds.map(async (id) => {
+        try {
+          const customer = await CustomerService.getById(id);
+          customerMap.set(id, {
+            name: customer.fullName,
+            phone: customer.phone,
+          });
+        } catch (e) {
+          console.error(`Failed to fetch customer ${id}`, e);
+        }
+      })
+    );
+
+    // Merge customer info into DTOs
+    const enrichedData = dto.data.map((item) => {
+      const customerInfo = customerMap.get(item.customerId);
+      return {
+        ...item,
+        customerName: customerInfo?.name,
+        customerPhone: customerInfo?.phone,
+      };
+    });
+
     return {
-      data: dto.data.map(LoanAdapterWithContractNumber.toDomain),
+      data: enrichedData.map(LoanAdapterWithContractNumber.toDomain),
       meta: {
         totalItems: dto.meta.totalItems,
         totalPages: dto.meta.totalPages,
@@ -51,17 +87,23 @@ export const LoanService = {
     };
   },
 
-  getLoanById: async (id: string): Promise<import("@/types/dto/loan.dto").LoanDetailDTO> => {
-    const response = await apiClient.get<import("@/types/dto/loan.dto").LoanDetailDTO>(
-      `${ENDPOINTS.LOANS}/${id}`
-    );
-    return response.data;
+  getLoanById: async (
+    id: string
+  ): Promise<import("@/types/dto/loan.dto").LoanDetailDTO> => {
+    const response = await apiClient.get<{
+      data: import("@/types/dto/loan.dto").LoanDetailDTO;
+    }>(`${ENDPOINTS.LOANS}/${id}`);
+    return response.data.data;
   },
 
-  getRepaymentSchedule: async (loanId: string): Promise<import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[]> => {
-    const response = await apiClient.get<{ data: import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[] }>(
-      `${ENDPOINTS.LOANS}/${loanId}/repayment-schedule`
-    );
+  getRepaymentSchedule: async (
+    loanId: string
+  ): Promise<
+    import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[]
+  > => {
+    const response = await apiClient.get<{
+      data: import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[];
+    }>(`${ENDPOINTS.LOANS}/${loanId}/repayment-schedule`);
     return response.data.data;
   },
 
@@ -87,11 +129,23 @@ export const LoanService = {
     return response.data;
   },
 
-  approveLoan: async (id: string, note?: string): Promise<any> => {
+  updateStatus: async (
+    id: string,
+    status: "ACTIVE" | "REJECTED",
+    note?: string
+  ): Promise<any> => {
     const response = await apiClient.patch(`${ENDPOINTS.LOANS}/${id}/status`, {
-      status: "ACTIVE",
+      status,
       note,
     });
     return response.data;
+  },
+
+  approveLoan: async (id: string, note?: string) => {
+    return LoanService.updateStatus(id, "ACTIVE", note);
+  },
+
+  rejectLoan: async (id: string, note?: string) => {
+    return LoanService.updateStatus(id, "REJECTED", note);
   },
 };

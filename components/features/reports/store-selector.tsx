@@ -35,15 +35,29 @@ export const StoreSelector = ({
 
   useEffect(() => {
     const fetchStores = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        const response = await StoreService.getStores({ limit: 100 });
-        setStores(response.data);
-
-        // If user is a Manager/Staff, force their store
-        if (["manager", "staff"].includes(userRole) && userStoreId) {
-            // Check if their store is in the list, if not (pagination?), fetch it specifically or just set it
-            onChange(userStoreId);
+        if (["admin", "store_owner"].includes(userRole)) {
+          // Admin/Owner: Fetch all stores
+          const response = await StoreService.getStores({ limit: 100 });
+          setStores(response.data);
+        } else if (userStoreId) {
+          // Manager/Staff with assigned Store ID: Fetch that specific store
+          const store = await StoreService.getStoreById(userStoreId);
+          // Verify we got a valid store object (API might return error or empty)
+          if (store && store.id) {
+            setStores([store]);
+            onChange(store.id);
+          } else {
+             // Fallback if ID is invalid: try fetching all? Or just empty.
+             console.warn("Assigned store not found");
+          }
+        } else {
+          // Fallback: User has no role or no store ID (e.g. Dev/Test environment)
+          // Attempt to fetch all stores so the UI isn't broken
+          console.log("No store ID found for user, fetching all stores as fallback");
+          const response = await StoreService.getStores({ limit: 100 });
+          setStores(response.data);
         }
       } catch (error) {
         console.error("Failed to fetch stores", error);
@@ -52,22 +66,11 @@ export const StoreSelector = ({
       }
     };
 
-    // If Admin/Owner, fetch all. If Manager, maybe we still fetch all but lock it? 
-    // Or just fetch their own?
-    // User requirement: "MANAGER can only view their branch"
-    if (["admin", "store_owner"].includes(userRole)) {
-      fetchStores();
-    } else if (userStoreId) {
-       // Just set the single store for manager
-       // ideally we fetch the store details to show the name
-       StoreService.getStoreById(userStoreId).then((store) => {
-           setStores([store]);
-           onChange(store.id);
-       });
-    }
-  }, [userRole, userStoreId, onChange]);
+    fetchStores();
+  }, [userRole, userStoreId]); // Removed onChange to avoid loops if onChange changes identity
 
-  const canSelect = ["admin", "store_owner"].includes(userRole);
+  // Allow selection if Admin/Owner OR if we somehow fetched multiple stores (fallback case)
+  const canSelect = ["admin", "store_owner"].includes(userRole) || stores.length > 1;
 
   if (!canSelect && stores.length === 1) {
       // Render a read-only view or disabled select

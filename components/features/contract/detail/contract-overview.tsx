@@ -101,41 +101,147 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-md">
-            {(loan.collateral || []).map((item, index) => (
-              <div
-                key={item.id}
-                className="flex flex-col md:flex-row justify-between p-4 gap-4 items-center"
-              >
-                <div className="flex-1">
-                  <div className="font-medium">
-                    {item.ownerName} (Tài sản {index + 1})
+          <div className="border rounded-md divide-y">
+            {(loan.collateral || []).map((item, index) => {
+              // Ensure collateralInfo is an object
+              const info =
+                typeof item.collateralInfo === "string"
+                  ? JSON.parse(item.collateralInfo)
+                  : item.collateralInfo || {};
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex flex-col md:flex-row justify-between p-4 gap-4"
+                >
+                  <div className="flex-1 space-y-2">
+                    <div className="font-medium flex items-center gap-2">
+                      {item.ownerName}
+                      <Badge variant="outline" className="text-xs">
+                        Tài sản {index + 1}
+                      </Badge>
+                    </div>
+
+                    {/* Dynamic Collateral Details Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
+                      {info.brand && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Thương hiệu:
+                          </span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.brand}
+                          </span>
+                        </div>
+                      )}
+                      {info.model && (
+                        <div>
+                          <span className="text-muted-foreground">Model:</span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.model}
+                          </span>
+                        </div>
+                      )}
+                      {info.color && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Màu sắc:
+                          </span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.color}
+                          </span>
+                        </div>
+                      )}
+                      {info.serial && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Số Serial/IMEI:
+                          </span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.serial}
+                          </span>
+                        </div>
+                      )}
+                      {info.condition && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Tình trạng:
+                          </span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.condition}
+                          </span>
+                        </div>
+                      )}
+                      {info.description && (
+                        <div className="col-span-2 md:col-span-3">
+                          <span className="text-muted-foreground">Mô tả:</span>{" "}
+                          <span className="font-medium text-foreground">
+                            {info.description}
+                          </span>
+                        </div>
+                      )}
+                      {/* Fallback for other arbitrary keys if needed, or keep it strict to known keys */}
+                      {Object.entries(info)
+                        .filter(
+                          ([k]) =>
+                            ![
+                              "brand",
+                              "model",
+                              "color",
+                              "serial",
+                              "condition",
+                              "description",
+                            ].includes(k)
+                        )
+                        .map(([k, v]) => (
+                          <div key={k}>
+                            <span className="text-muted-foreground capitalize">
+                              {k}:
+                            </span>{" "}
+                            <span className="font-medium text-foreground">
+                              {String(v)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {JSON.stringify(item.collateralInfo)}
+
+                  <div className="flex flex-col items-end gap-2 min-w-[150px] pl-4 border-l">
+                    <Badge
+                      className="mb-1"
+                      variant={
+                        item.status === "STORED" ? "default" : "secondary"
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                    <div className="text-sm text-right">
+                      <span className="text-muted-foreground block text-xs">
+                        Định giá
+                      </span>
+                      <span className="font-bold text-lg text-primary">
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(item.appraisedValue)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground text-right mt-1">
+                      {item.storageLocation ? (
+                        <>
+                          Kho:{" "}
+                          <span className="text-foreground">
+                            {item.storageLocation}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="italic">Chưa nhập kho</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge
-                    variant={item.status === "STORED" ? "secondary" : "outline"}
-                  >
-                    {item.status}
-                  </Badge>
-                  <div className="text-sm">
-                    Định giá:{" "}
-                    <span className="font-medium">
-                      {new Intl.NumberFormat("vi-VN", {
-                        style: "currency",
-                        currency: "VND",
-                      }).format(item.appraisedValue)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Kho: {item.storageLocation}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

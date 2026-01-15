@@ -29,6 +29,8 @@ import {
   Edit as EditIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
+import { Role } from "@/types/constant";
 
 interface CashbookSidePanelProps {
   open: boolean;
@@ -62,9 +64,10 @@ export function CashbookSidePanel({
 }: CashbookSidePanelProps) {
   const [mode, setMode] = useState(initialMode);
   const [formData, setFormData] = useState<Payment>(emptyPayment);
-
-  // Local state for date string to bind with input[type="datetime-local"]
   const [dateStr, setDateStr] = useState<string>("");
+  const { user } = useUser();
+  const role = (user?.publicMetadata?.role as Role) || "staff";
+  const isAdmin = role === "admin";
 
   useEffect(() => {
     setMode(initialMode);
@@ -84,6 +87,15 @@ export function CashbookSidePanel({
   }, [initialMode, selectedPayment, open]);
 
   const handleSave = () => {
+    // Validation: Require notes for Other Income/Expense
+    if (
+      (formData.paymentType === "OTHER_INCOME" || formData.paymentType === "OTHER_EXPENSE") &&
+      !formData.notes?.trim()
+    ) {
+      alert("Vui lòng nhập nội dung/ghi chú cho loại giao dịch này.");
+      return;
+    }
+
     onSave({
       ...formData,
       paidAt: new Date(dateStr).toISOString(),
@@ -97,6 +109,9 @@ export function CashbookSidePanel({
     const expenses: PaymentType[] = ["OTHER_EXPENSE", "DISBURSEMENT"];
     return expenses.includes(type) ? "text-red-600" : "text-green-600";
   };
+
+  // Restrict types for manual creation
+  const isOtherType = formData.paymentType === "OTHER_INCOME" || formData.paymentType === "OTHER_EXPENSE";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -194,21 +209,34 @@ export function CashbookSidePanel({
                   <SelectValue placeholder="Chọn loại giao dịch" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={PaymentTypeEnum.PERIODIC}>
-                    Thu lãi định kỳ
-                  </SelectItem>
-                  <SelectItem value={PaymentTypeEnum.LIQUIDATION}>
-                    Thanh lý tài sản
-                  </SelectItem>
-                  <SelectItem value={PaymentTypeEnum.OTHER_INCOME}>
-                    Thu khác
-                  </SelectItem>
-                  <SelectItem value={PaymentTypeEnum.DISBURSEMENT}>
-                    Giải ngân hợp đồng
-                  </SelectItem>
-                  <SelectItem value={PaymentTypeEnum.OTHER_EXPENSE}>
-                    Chi khác
-                  </SelectItem>
+                  {mode === "create" ? (
+                    <>
+                      <SelectItem value={PaymentTypeEnum.OTHER_INCOME}>
+                        Thu khác
+                      </SelectItem>
+                      <SelectItem value={PaymentTypeEnum.OTHER_EXPENSE}>
+                        Chi khác
+                      </SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value={PaymentTypeEnum.PERIODIC}>
+                        Thu lãi định kỳ
+                      </SelectItem>
+                      <SelectItem value={PaymentTypeEnum.LIQUIDATION}>
+                        Thanh lý tài sản
+                      </SelectItem>
+                      <SelectItem value={PaymentTypeEnum.OTHER_INCOME}>
+                        Thu khác
+                      </SelectItem>
+                      <SelectItem value={PaymentTypeEnum.DISBURSEMENT}>
+                        Giải ngân hợp đồng
+                      </SelectItem>
+                      <SelectItem value={PaymentTypeEnum.OTHER_EXPENSE}>
+                        Chi khác
+                      </SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -242,59 +270,68 @@ export function CashbookSidePanel({
 
             {/* Content / Notes */}
             <div className="grid gap-2">
-              <Label>Nội dung / Ghi chú</Label>
+              <Label>
+                Nội dung / Ghi chú
+                {isOtherType && !isView && <span className="text-red-500 ml-1">*</span>}
+              </Label>
               <Textarea
                 disabled={isView}
                 value={formData.notes || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
-                placeholder="Nhập nội dung chi tiết..."
+                placeholder={isOtherType ? "Bắt buộc nhập nội dung..." : "Nhập nội dung chi tiết..."}
                 className="resize-none"
                 rows={3}
               />
             </div>
 
-            {/* Related Contract (Optional) */}
-            <div className="grid gap-2">
-              <Label>Mã hợp đồng (nếu có)</Label>
-              <div className="relative">
-                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <Input
-                  disabled={isView}
-                  value={formData.loanId || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      loanId: e.target.value,
-                    })
-                  }
-                  className="pl-9"
-                  placeholder="HD-XXXXXX"
-                />
+            {/* Related Contract (Optional) - Hide if null/empty in View, or always for Other types in Create */}
+            {(formData.loanId || (mode === "create" && !isOtherType)) && (
+              <div className="grid gap-2">
+                <Label>Mã hợp đồng</Label>
+                <div className="relative">
+                  <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Input
+                    disabled={isView}
+                    value={formData.loanId || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        loanId: e.target.value,
+                      })
+                    }
+                    className="pl-9"
+                    placeholder="HD-XXXXXX"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-3">
           {mode === "view" ? (
             <>
-              <Button onClick={() => setMode("edit")} className="w-full">
-                <EditIcon className="w-4 h-4 mr-2" /> Chỉnh sửa
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (confirm("Bạn có chắc chắn muốn xóa giao dịch này?")) {
-                    onDelete(formData.id);
-                    onOpenChange(false);
-                  }
-                }}
-                className="w-full"
-              >
-                <Trash2 className="w-4 h-4 mr-2" /> Xóa giao dịch
-              </Button>
+              {isAdmin && (
+                <>
+                  <Button onClick={() => setMode("edit")} className="w-full">
+                    <EditIcon className="w-4 h-4 mr-2" /> Chỉnh sửa
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm("Bạn có chắc chắn muốn xóa giao dịch này?")) {
+                        onDelete(formData.id);
+                        onOpenChange(false);
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Xóa giao dịch
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <>

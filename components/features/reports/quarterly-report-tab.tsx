@@ -21,10 +21,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useRef } from "react";
 import { RoleGate } from "@/components/features/role/role-gate";
 import { ReportService } from "@/lib/report.service";
-import { QuarterlyReportResponse } from "@/types/report";
+import { QuarterlyReportResponse, DK13Row } from "@/types/report";
 import { StoreSelector } from "./store-selector";
 import { QuarterlyReportPrint } from "@/components/templates/reports/quarterly-report-print";
-import { mockDK13Report } from "@/mock-data/quarterly-report"; // Keep mock for table structure if API aggregate is too simple
 
 const QuarterlyReportTab = () => {
   const [quarter, setQuarter] = useState("1");
@@ -48,6 +47,7 @@ const QuarterlyReportTab = () => {
         setData(res);
       } catch (error) {
         console.error("Failed to fetch quarterly report", error);
+        setData(null);
       } finally {
         setLoading(false);
       }
@@ -66,15 +66,28 @@ const QuarterlyReportTab = () => {
       currency: "VND",
     }).format(val);
 
-  // If the API returns aggregate stats but not the granular breakdown for the table,
-  // we might need to map it or use the mock data structure as a placeholder for the table.
-  // For now, let's assume `data` contains what we need OR we use the mock data for the Table display
-  // but updated with `data` stats if possible.
-  // **Decision:** I will use the `mockDK13Report` for the *detailed table* structure because the API `QuarterlyStatistics`
-  // returns flat totals (totalLoansIssued, totalCollateralsReceived) but NOT a breakdown by Category (Bike, Laptop, etc.).
-  // This is a GAP in the API vs the "DK13" requirement which requires category breakdown.
-  // I will note this gap but proceed by showing the MOCK table for visual correctness,
-  // and using REAL `data.statistics` for the Top Cards.
+  // Transform real API statistics into the Table Row format
+  // Since API doesn't provide category breakdown, we create a single "Summary" row.
+  const tableRows: DK13Row[] = data && data.statistics
+    ? [
+        {
+          id: "summary",
+          category: "Tổng hợp chung",
+          // Received
+          totalReceived: data.statistics.totalCollateralsReceived || 0,
+          totalReceivedValue: data.statistics.totalLoanAmount || 0, // Approx: Total Loan Amount Issued
+          // Redeemed (Closed/Released)
+          totalRedeemed: data.statistics.totalCollateralsReleased || 0,
+          totalRedeemedValue: 0, // Not provided by API yet
+          // Liquidated
+          totalLiquidated: data.statistics.totalLiquidations || 0,
+          totalLiquidatedValue: 0, // Not provided by API yet
+          // Inventory (Active)
+          currentInventory: data.statistics.totalLoansActive || 0,
+          currentInventoryValue: 0, // Not provided by API yet
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -82,7 +95,7 @@ const QuarterlyReportTab = () => {
         <QuarterlyReportPrint
           ref={printRef}
           data={data}
-          rows={mockDK13Report} // Using Mock Rows because API doesn't return category breakdown
+          rows={tableRows}
           quarter={quarter}
           year={year}
         />
@@ -149,7 +162,7 @@ const QuarterlyReportTab = () => {
           </div>
         ) : (
           <div className="print:hidden">
-            {/* Summary Cards - Using Real Data if available */}
+            {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -209,12 +222,16 @@ const QuarterlyReportTab = () => {
 
             {/* Main Report Table (ĐK13 Format) */}
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden text-sm mt-6">
-              <div className="p-4 border-b bg-gray-50 text-center">
+              <div className="p-4 border-b bg-gray-50 text-center relative">
                 <h3 className="font-bold text-lg uppercase text-gray-800">
                   Báo cáo tình hình kinh doanh {quarter}/{year}
                 </h3>
                 <p className="text-xs italic text-gray-500">
                   (Ban hành kèm theo Thông tư số 54/2012/TT-BCA)
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  * Dữ liệu được tổng hợp tự động từ hệ thống. Chi tiết phân
+                  loại từng mặt hàng vui lòng xem tại sổ quản lý chi tiết.
                 </p>
               </div>
 
@@ -288,45 +305,58 @@ const QuarterlyReportTab = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* NOTE: Using Mock Rows because API doesn't provide breakdown */}
-                    {mockDK13Report.map((item, index) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="text-center border-r">
-                          {index + 1}
-                        </TableCell>
-                        <TableCell className="border-r font-medium">
-                          {item.category}
-                        </TableCell>
-
-                        <TableCell className="text-center border-r">
-                          {item.totalReceived}
-                        </TableCell>
-                        <TableCell className="text-right border-r">
-                          {formatCurrency(item.totalReceivedValue)}
-                        </TableCell>
-
-                        <TableCell className="text-center border-r">
-                          {item.totalRedeemed}
-                        </TableCell>
-                        <TableCell className="text-right border-r">
-                          {formatCurrency(item.totalRedeemedValue)}
-                        </TableCell>
-
-                        <TableCell className="text-center border-r">
-                          {item.totalLiquidated}
-                        </TableCell>
-                        <TableCell className="text-right border-r">
-                          {formatCurrency(item.totalLiquidatedValue)}
-                        </TableCell>
-
-                        <TableCell className="text-center border-r">
-                          {item.currentInventory}
-                        </TableCell>
-                        <TableCell className="text-right border-r">
-                          {formatCurrency(item.currentInventoryValue)}
+                    {!data ? (
+                      <TableRow>
+                        <TableCell colSpan={10} className="text-center py-8">
+                          Không có dữ liệu
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      tableRows.map((item, index) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-center border-r">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell className="border-r font-medium">
+                            {item.category}
+                          </TableCell>
+
+                          <TableCell className="text-center border-r">
+                            {item.totalReceived}
+                          </TableCell>
+                          <TableCell className="text-right border-r">
+                            {formatCurrency(item.totalReceivedValue)}
+                          </TableCell>
+
+                          <TableCell className="text-center border-r">
+                            {item.totalRedeemed}
+                          </TableCell>
+                          <TableCell className="text-right border-r">
+                            {item.totalRedeemedValue
+                              ? formatCurrency(item.totalRedeemedValue)
+                              : "-"}
+                          </TableCell>
+
+                          <TableCell className="text-center border-r">
+                            {item.totalLiquidated}
+                          </TableCell>
+                          <TableCell className="text-right border-r">
+                            {item.totalLiquidatedValue
+                              ? formatCurrency(item.totalLiquidatedValue)
+                              : "-"}
+                          </TableCell>
+
+                          <TableCell className="text-center border-r">
+                            {item.currentInventory}
+                          </TableCell>
+                          <TableCell className="text-right border-r">
+                            {item.currentInventoryValue
+                              ? formatCurrency(item.currentInventoryValue)
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

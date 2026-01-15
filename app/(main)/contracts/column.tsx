@@ -8,7 +8,7 @@ import {
   Trash2,
   Banknote,
   Eye,
-  History as HistoryIcon,
+  MessageSquare,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -102,13 +102,28 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-import { useUser } from "@clerk/nextjs";
-import { Role } from "@/types/constant";
-
 const LoanActions = ({ row }: { row: any }) => {
-  const { user } = useUser();
-  const role = (user?.publicMetadata?.role as Role) || "staff";
-  const canRefinance = ["admin", "manager"].includes(role);
+  // Get the loan status - show action buttons for ACTIVE and OVERDUE loans
+  const rawStatus = (row.original as any).status || row.original.asset?.status;
+  const isActiveLoan = rawStatus === "ACTIVE";
+  const isOverdueLoan = rawStatus === "OVERDUE";
+  const showPaymentActions = isActiveLoan || isOverdueLoan;
+
+  // If not an active or overdue loan, only show the view button
+  if (!showPaymentActions) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 px-2"
+          title="Xem chi tiết"
+        >
+          <Eye className="w-4 h-4 text-gray-500" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -127,9 +142,8 @@ const LoanActions = ({ row }: { row: any }) => {
         onClick={() => {
           const event = new CustomEvent("quick-pay", {
             detail: {
-              loanId: (row.original as any).contractNumber || "HD-NEW",
-              amount:
-                (row.original.totalLoan * row.original.interestRate) / 100,
+              loanId: row.original.id,
+              loanCode: (row.original as any).contractNumber || row.original.id,
             },
           });
           window.dispatchEvent(event);
@@ -138,26 +152,24 @@ const LoanActions = ({ row }: { row: any }) => {
         <Banknote className="w-4 h-4 mr-1" /> Thu lãi
       </Button>
 
-      {canRefinance && (
+      {/* Show "Nhắc nợ" button for OVERDUE loans */}
+      {isOverdueLoan && (
         <Button
           size="sm"
           variant="secondary"
-          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-          title="Gia hạn hợp đồng (Chỉ quản lý)"
+          className="h-8 bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200"
           onClick={() => {
-            const event = new CustomEvent("refinance-loan", {
+            const event = new CustomEvent("debt-reminder", {
               detail: {
-                id: (row.original as any).contractNumber || "HD-NEW",
-                customerName: row.original.customer.fullName,
-                amount: row.original.totalLoan,
-                maturityDate: (row.original as any).endDate, // Assuming endDate exists or null
-                interestRate: row.original.interestRate,
+                loanId: row.original.id,
+                loanCode:
+                  (row.original as any).contractNumber || row.original.id,
               },
             });
             window.dispatchEvent(event);
           }}
         >
-          <HistoryIcon className="w-4 h-4 mr-1" /> Gia hạn
+          <MessageSquare className="w-4 h-4 mr-1" /> Nhắc nợ
         </Button>
       )}
     </div>
@@ -182,18 +194,20 @@ export const LoanColumn: ColumnDef<loan>[] = [
     cell: ({ row }) => (
       <div className="flex flex-col">
         <span className="font-semibold">{row.original.customer.fullName}</span>
-        <span className="text-xs text-muted-foreground">{row.original.customer.phone}</span>
+        <span className="text-xs text-muted-foreground">
+          {row.original.customer.phone}
+        </span>
       </div>
     ),
   },
   {
     accessorKey: "asset.name",
-    header: "Tài sản",
+    header: "Loại Vay",
     cell: ({ row }) => (
-        <div className="flex flex-col">
-            <span className="font-medium">{row.original.asset.name}</span>
-            <span className="text-xs text-muted-foreground">{row.original.asset.assetType?.name}</span>
-        </div>
+      <div className="flex flex-col">
+        <span className="font-medium">{row.original.asset.name}</span>
+        {/* <span className="text-xs text-muted-foreground">{row.original.asset.assetType?.name}</span> */}
+      </div>
     ),
   },
   {
@@ -202,10 +216,7 @@ export const LoanColumn: ColumnDef<loan>[] = [
     cell: ({ row }) => (
       <div className="flex flex-col">
         <span className="font-bold text-green-700">
-            {formatCurrency(row.getValue("totalLoan"))}
-        </span>
-        <span className="text-xs text-muted-foreground">
-            Lãi suất: {row.original.interestRate || 0}%
+          {formatCurrency(row.getValue("totalLoan"))}
         </span>
       </div>
     ),
@@ -217,9 +228,12 @@ export const LoanColumn: ColumnDef<loan>[] = [
     cell: ({ row }) => {
       // Adapter maps API status to row.original.status (string) OR asset.status (enum)
       // Let's use the status string if it exists on the object (added in adapter)
-      const rawStatus = (row.original as any).status || row.original.asset.status;
-      
-      let badgeVariant: "default" | "secondary" | "destructive" | "outline" = "outline";
+      const rawStatus =
+        (row.original as any).status || row.original.asset.status;
+
+      let badgeVariant: "default" | "secondary" | "destructive" | "outline" =
+        "outline";
+      let badgeClassName = "";
       let label = rawStatus;
 
       switch (rawStatus) {
@@ -228,7 +242,9 @@ export const LoanColumn: ColumnDef<loan>[] = [
           label = "Đang vay";
           break;
         case "OVERDUE":
-          badgeVariant = "destructive";
+          badgeVariant = "destructive"; // Keep variant for base styles
+          badgeClassName =
+            "bg-red-600 hover:bg-red-700 text-white font-bold border-none"; // Custom override
           label = "Quá hạn";
           break;
         case "CLOSED":
@@ -241,19 +257,24 @@ export const LoanColumn: ColumnDef<loan>[] = [
           break;
         case "REJECTED":
           badgeVariant = "destructive";
+          badgeClassName =
+            "bg-red-600 hover:bg-red-700 text-white font-bold border-none";
           label = "Từ chối";
           break;
         default:
-           // Fallback for AssetStatus enum values
-           if (rawStatus === AssetStatus.PLEDGED) {
-               badgeVariant = "default";
-               label = "Đang cầm";
-           }
-           break;
+          // Fallback for AssetStatus enum values
+          if (rawStatus === AssetStatus.PLEDGED) {
+            badgeVariant = "default";
+            label = "Đang cầm";
+          }
+          break;
       }
 
       return (
-        <Badge variant={badgeVariant} className="whitespace-nowrap">
+        <Badge
+          variant={badgeVariant}
+          className={`whitespace-nowrap ${badgeClassName}`}
+        >
           {label}
         </Badge>
       );
@@ -263,9 +284,9 @@ export const LoanColumn: ColumnDef<loan>[] = [
     id: "actions",
     header: "Thao tác",
     cell: ({ row }) => (
-        <div onClick={(e) => e.stopPropagation()}> 
-            <LoanActions row={row} />
-        </div>
+      <div onClick={(e) => e.stopPropagation()}>
+        <LoanActions row={row} />
+      </div>
     ),
   },
 ];

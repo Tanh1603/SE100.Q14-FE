@@ -2,8 +2,8 @@ import React from "react";
 import { QuarterlyReportResponse, DK13Row } from "@/types/report";
 
 interface QuarterlyReportPrintProps {
-  data: QuarterlyReportResponse | null; // The API response type might need mapping to DK13 rows
-  rows?: DK13Row[]; // Or we pass processed rows
+  data: QuarterlyReportResponse | null; 
+  rows?: DK13Row[]; 
   storeName?: string;
   storeAddress?: string;
   quarter: number | string;
@@ -13,13 +13,6 @@ interface QuarterlyReportPrintProps {
 export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyReportPrintProps>(
   ({ data, rows, storeName, storeAddress, quarter, year }, ref) => {
     
-    // If rows aren't provided, we ideally map them from `data`. 
-    // Since the API response structure in `QuarterlyReportResponse` is aggregated 
-    // but the Table requires per-category breakdown, we assume the parent component
-    // does the heavy lifting or we use the `rows` prop if provided.
-    // For this template, let's rely on `rows` being passed for the detailed table,
-    // and `data` for summary stats if needed.
-    
     // Fallback if no rows
     const reportRows = rows || [];
 
@@ -28,46 +21,72 @@ export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyRe
 
     return (
       <div ref={ref} className="p-8 bg-white text-black font-serif text-sm w-full">
+        <style type="text/css" media="print">
+          {`
+            @page { size: portrait; margin: 15mm; }
+            body { -webkit-print-color-adjust: exact; }
+          `}
+        </style>
+
         {/* Header */}
         <div className="flex justify-between mb-6 items-start">
-          <div className="text-center w-1/3">
-            <p className="font-bold uppercase">{storeName || "TÊN CƠ SỞ"}</p>
-            <p className="text-xs">{storeAddress}</p>
-            <div className="border-t border-black w-1/2 mx-auto my-1"></div>
-            <p>Số: ...../BC</p>
+          <div className="text-center w-5/12">
+            <p className="font-bold uppercase">{storeName || "TÊN CƠ SỞ KD"}</p>
+            <p className="text-xs">{storeAddress || "ĐỊA CHỈ: ...................."}</p>
+            <div className="border-t border-black w-1/3 mx-auto my-1"></div>
+            <p>Số: ...../BC-ANTT</p>
           </div>
-          <div className="text-center w-2/3">
-            <h3 className="font-bold uppercase">
+          <div className="text-center w-7/12">
+            <h3 className="font-bold uppercase text-sm">
               CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
             </h3>
-            <p className="font-bold underline">Độc lập - Tự do - Hạnh phúc</p>
+            <p className="font-bold underline text-sm">Độc lập - Tự do - Hạnh phúc</p>
+            <p className="italic text-xs mt-2">
+              ......., ngày ...... tháng ...... năm 20......
+            </p>
           </div>
         </div>
 
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold uppercase mb-2">
-            BÁO CÁO TÌNH HÌNH HOẠT ĐỘNG KINH DOANH DỊCH VỤ CẦM ĐỒ
+            BÁO CÁO
           </h1>
-          <p className="font-bold">
-            Quý {quarter} năm {year}
+          <h2 className="text-lg font-bold uppercase mb-2">
+            TÌNH HÌNH, KẾT QUẢ THỰC HIỆN CÁC QUY ĐỊNH<br/>VỀ AN NINH, TRẬT TỰ
+          </h2>
+          <p className="italic">
+            (Quý {quarter} năm {year})
           </p>
           <p className="italic text-xs mt-1">
-            (Ban hành kèm theo Thông tư số 54/2012/TT-BCA)
+            (Mẫu ĐK13 ban hành kèm theo Thông tư số 42/2017/TT-BCA)
           </p>
         </div>
 
         <div className="mb-4">
-          <p className="text-center">
-            <strong>Kính gửi:</strong> Công an .................................................................
+          <p>
+            <strong>Kính gửi:</strong> ....................................................................................................
           </p>
         </div>
 
-        {/* Content */}
-        <div className="mb-4 text-justify">
-          1. Tình hình hoạt động kinh doanh:
+        {/* Section I: General Info */}
+        <div className="mb-4">
+          <h3 className="font-bold uppercase">I. TÌNH HÌNH CƠ BẢN</h3>
+          <div className="pl-4 space-y-1">
+            <p>1. Tên cơ sở kinh doanh: {storeName}</p>
+            <p>2. Địa điểm kinh doanh: {storeAddress}</p>
+            <p>3. Ngành, nghề kinh doanh: <strong>Dịch vụ cầm đồ</strong></p>
+            <p>4. Tổng số nhân viên: ........... (Nam: ....... Nữ: .......)</p>
+            <p>5. Người chịu trách nhiệm về ANTT: .................................................................</p>
+          </div>
         </div>
 
-        <table className="w-full border-collapse border border-black text-[10px]">
+        {/* Section II: Business Results */}
+        <div className="mb-2">
+          <h3 className="font-bold uppercase">II. KẾT QUẢ HOẠT ĐỘNG KINH DOANH</h3>
+          <p className="pl-4 mb-2">Số liệu thống kê dịch vụ cầm đồ:</p>
+        </div>
+
+        <table className="w-full border-collapse border border-black text-[10px] mb-4">
           <thead>
             <tr className="bg-gray-100">
               <th className="border border-black p-1 text-center" rowSpan={2}>STT</th>
@@ -79,13 +98,13 @@ export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyRe
             </tr>
             <tr className="bg-gray-100">
               <th className="border border-black p-1 text-center">Số lượng</th>
-              <th className="border border-black p-1 text-center">Giá trị</th>
+              <th className="border border-black p-1 text-center">Giá trị (VNĐ)</th>
               <th className="border border-black p-1 text-center">Số lượng</th>
-              <th className="border border-black p-1 text-center">Giá trị</th>
+              <th className="border border-black p-1 text-center">Giá trị (VNĐ)</th>
               <th className="border border-black p-1 text-center">Số lượng</th>
-              <th className="border border-black p-1 text-center">Giá trị</th>
+              <th className="border border-black p-1 text-center">Giá trị (VNĐ)</th>
               <th className="border border-black p-1 text-center">Số lượng</th>
-              <th className="border border-black p-1 text-center">Giá trị</th>
+              <th className="border border-black p-1 text-center">Giá trị (VNĐ)</th>
             </tr>
           </thead>
           <tbody>
@@ -106,11 +125,12 @@ export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyRe
              {/* Total Row */}
              <tr className="font-bold bg-gray-50">
                 <td className="border border-black p-1 text-center" colSpan={2}>TỔNG CỘNG</td>
+                {/* Use Data from API if available for totals, otherwise sum rows */}
                 <td className="border border-black p-1 text-center">
-                    {reportRows.reduce((acc, r) => acc + r.totalReceived, 0)}
+                    {data ? data.statistics.totalCollateralsReceived : reportRows.reduce((acc, r) => acc + r.totalReceived, 0)}
                 </td>
                 <td className="border border-black p-1 text-right">
-                    {formatCurrency(reportRows.reduce((acc, r) => acc + r.totalReceivedValue, 0))}
+                    {formatCurrency(data ? data.statistics.totalLoanAmount : reportRows.reduce((acc, r) => acc + r.totalReceivedValue, 0))}
                 </td>
                 <td className="border border-black p-1 text-center">
                     {reportRows.reduce((acc, r) => acc + r.totalRedeemed, 0)}
@@ -119,13 +139,13 @@ export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyRe
                     {formatCurrency(reportRows.reduce((acc, r) => acc + r.totalRedeemedValue, 0))}
                 </td>
                 <td className="border border-black p-1 text-center">
-                    {reportRows.reduce((acc, r) => acc + r.totalLiquidated, 0)}
+                    {data ? data.statistics.totalLiquidations : reportRows.reduce((acc, r) => acc + r.totalLiquidated, 0)}
                 </td>
                 <td className="border border-black p-1 text-right">
                     {formatCurrency(reportRows.reduce((acc, r) => acc + r.totalLiquidatedValue, 0))}
                 </td>
                 <td className="border border-black p-1 text-center">
-                    {reportRows.reduce((acc, r) => acc + r.currentInventory, 0)}
+                    {data ? data.statistics.totalLoansActive : reportRows.reduce((acc, r) => acc + r.currentInventory, 0)}
                 </td>
                 <td className="border border-black p-1 text-right">
                     {formatCurrency(reportRows.reduce((acc, r) => acc + r.currentInventoryValue, 0))}
@@ -134,26 +154,31 @@ export const QuarterlyReportPrint = React.forwardRef<HTMLDivElement, QuarterlyRe
           </tbody>
         </table>
 
-        <div className="my-4 text-justify">
-          2. Chấp hành các quy định khác: ............................................................................................
-          <br/>
-          ..............................................................................................................................................
+        {/* Section III: Security */}
+        <div className="mb-4">
+          <h3 className="font-bold uppercase">III. TÌNH HÌNH AN NINH, TRẬT TỰ</h3>
+          <div className="pl-4 space-y-1">
+            <p>1. Số vụ việc liên quan đến ANTT: Không</p>
+            <p>2. Số người nghi vấn: Không</p>
+            <p>3. Việc chấp hành kiểm tra của cơ quan Công an: Chấp hành tốt</p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <h3 className="font-bold uppercase">IV. KIẾN NGHỊ, ĐỀ XUẤT</h3>
+          <p className="pl-4">............................................................................................................................</p>
         </div>
 
         {/* Footer */}
         <div className="mt-8 flex justify-between text-center">
           <div className="w-1/2">
-            <p className="font-bold">Người lập biểu</p>
-            <p className="italic text-xs">(Ký, ghi rõ họ tên)</p>
-            <div className="h-24"></div>
+            {/* Empty for spacing */}
           </div>
           <div className="w-1/2">
-            <p className="italic mb-1">
-              ......., ngày......tháng......năm......
-            </p>
-            <p className="font-bold">Đại diện cơ sở kinh doanh</p>
+            <p className="font-bold uppercase">Đại diện cơ sở kinh doanh</p>
             <p className="italic text-xs">(Ký, ghi rõ họ tên, đóng dấu)</p>
             <div className="h-24"></div>
+            <p className="font-bold">.............................................</p>
           </div>
         </div>
       </div>

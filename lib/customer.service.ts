@@ -38,10 +38,10 @@ export const CustomerService = {
   },
 
   getById: async (id: string): Promise<Customer> => {
-    const response = await apiClient.get<CustomerDTO>(
+    const response = await apiClient.get<{ data: CustomerDTO }>(
       ENDPOINTS.CUSTOMER_BY_ID(id)
     );
-    return CustomerAdapter.toDomain(response.data);
+    return CustomerAdapter.toDomain(response.data.data);
   },
 
   create: async (data: Partial<Customer> & { mattruoc?: File; matsau?: File }): Promise<Customer> => {

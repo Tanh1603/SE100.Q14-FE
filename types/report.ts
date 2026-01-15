@@ -54,6 +54,12 @@ export interface DailyLogEntry {
   status: string;
 }
 
+export interface EnrichedDailyLogEntry extends DailyLogEntry {
+  loanCode?: string;
+  interestRate?: number;
+  duration?: number; // months
+}
+
 export interface DailyLogSummary {
   totalNewLoans: number;
   totalClosedLoans: number;

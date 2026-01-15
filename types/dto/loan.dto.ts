@@ -13,6 +13,7 @@ export interface LoanDTO {
   startDate: string;
   activatedAt: string;
   createdAt: string;
+  appliedInterestRate?: number;
 }
 
 export interface LoanDetailDTO extends LoanDTO {
@@ -60,6 +61,7 @@ export interface LoanSummaryResponseDto {
   startDate: string;
   activatedAt: string;
   createdAt: string;
+  appliedInterestRate?: number; // Added based on user feedback that field exists
 }
 
 export interface PagedLoanResponseDTO {

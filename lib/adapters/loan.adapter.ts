@@ -39,7 +39,7 @@ export const LoanAdapter: BaseAdapter<loan, LoanDTO> = {
       loanDate: dto.startDate,
       totalLoan: dto.loanAmount,
       interestPeriod: dto.durationMonths,
-      interestRate: 0, // Not provided by API
+      interestRate: dto.appliedInterestRate || 0,
       numberPayment: 0, // Not provided by API
       asset: asset,
       customer: {
@@ -57,92 +57,110 @@ export const LoanAdapter: BaseAdapter<loan, LoanDTO> = {
         permanentAddress: "",
         email: "",
         otherInfo: {
-            job: "",
-            workplace: "",
-            income: "",
-            emergencyContactName: "",
-            emergencyContactPhone: ""
+          job: "",
+          workplace: "",
+          income: "",
+          emergencyContactName: "",
+          emergencyContactPhone: "",
         },
         status: CustomerStatus.NORMAL,
         familyInfo: {
-            father: { fullName: "", phone: "", job: "" },
-            mother: { fullName: "", phone: "", job: "" },
-            spouse: { fullName: "", phone: "", job: "" }
+          father: { fullName: "", phone: "", job: "" },
+          mother: { fullName: "", phone: "", job: "" },
+          spouse: { fullName: "", phone: "", job: "" },
         },
       },
-    } as loan & { contractNumber: string }; 
+    } as loan & { contractNumber: string };
   },
 };
 
-export const LoanSummaryAdapter: BaseAdapter<loan & { contractNumber: string; status: string }, LoanSummaryResponseDto> = {
-    toDomain(dto: LoanSummaryResponseDto): loan & { contractNumber: string; status: string } {
-        // Map status
-        // API Status: PENDING, REJECTED, ACTIVE, CLOSED, OVERDUE
-        
-        let assetStatus = AssetStatus.PLEDGED;
-        if (dto.status === 'CLOSED') assetStatus = AssetStatus.LIQUIDATED; // Approximation
-        
-        const asset: Asset = {
-            id: `asset-${dto.id}`,
-            name: dto.loanTypeName || "Tài sản",
-            image: "",
-            assetType: {
-                id: "type-1",
-                name: dto.loanTypeName || "Loại tài sản",
-                isActive: true,
-                field: []
-            },
-            warehouses: {
-                id: "wh-1",
-                name: dto.storeName || "Kho",
-                address: "",
-                province: { id: "0", label: "" },
-                ward: { id: "0", label: "" },
-                status: WarehouseStatus.AVAILABLE,
-                fee: 0
-            },
-            status: assetStatus,
-            assetValue: []
-        };
+export const LoanSummaryAdapter: BaseAdapter<
+  loan & { contractNumber: string; status: string },
+  LoanSummaryResponseDto
+> = {
+  toDomain(
+    dto: LoanSummaryResponseDto
+  ): loan & { contractNumber: string; status: string } {
+    // Map status
+    // API Status: PENDING, REJECTED, ACTIVE, CLOSED, OVERDUE
 
-        return {
-            id: dto.id,
-            loanDate: dto.startDate,
-            totalLoan: dto.loanAmount,
-            interestPeriod: dto.durationMonths,
-            interestRate: 0, 
-            numberPayment: 0,
-            asset: asset,
-            customer: {
-                id: dto.customerId,
-                fullName: dto.customerName || `KH: ${dto.customerId.slice(0,6)}...`, // Use API name or fallback
-                avatar: "",
-                dob: "2000-01-01",
-                phone: dto.customerPhone || "",
-                cccd: "",
-                issueDate: "",
-                issuePlace: "",
-                address: "",
-                wardId: "",
-                provinceId: "",
-                permanentAddress: "",
-                email: "",
-                otherInfo: { job: "", workplace: "", income: "", emergencyContactName: "", emergencyContactPhone: "" },
-                status: CustomerStatus.NORMAL,
-                familyInfo: { father: { fullName: "", phone: "", job: "" }, mother: { fullName: "", phone: "", job: "" }, spouse: { fullName: "", phone: "", job: "" } }
-            },
-            contractNumber: dto.loanCode || dto.id,
-            status: dto.status // Keep original status string for UI badges
-        };
-    }
-}
+    let assetStatus = AssetStatus.PLEDGED;
+    if (dto.status === "CLOSED") assetStatus = AssetStatus.REDEEMED; // Approximation
+
+    const asset: Asset = {
+      id: `asset-${dto.id}`,
+      name: dto.loanTypeName || "Tài sản",
+      image: "",
+      assetType: {
+        id: "type-1",
+        name: dto.loanTypeName || "Loại tài sản",
+        isActive: true,
+        field: [],
+      },
+      warehouses: {
+        id: "wh-1",
+        name: dto.storeName || "Kho",
+        address: "",
+        province: { id: "0", label: "" },
+        ward: { id: "0", label: "" },
+        status: WarehouseStatus.AVAILABLE,
+        fee: 0,
+      },
+      status: assetStatus,
+      assetValue: [],
+    };
+
+    return {
+      id: dto.id,
+      loanDate: dto.startDate,
+      totalLoan: dto.loanAmount,
+      interestPeriod: dto.durationMonths,
+      interestRate: dto.appliedInterestRate || 0,
+      numberPayment: 0,
+      asset: asset,
+      customer: {
+        id: dto.customerId,
+        fullName: dto.customerName || `KH: ${dto.customerId.slice(0, 6)}...`, // Use API name or fallback
+        avatar: "",
+        dob: "2000-01-01",
+        phone: dto.customerPhone || "",
+        cccd: "",
+        issueDate: "",
+        issuePlace: "",
+        address: "",
+        wardId: "",
+        provinceId: "",
+        permanentAddress: "",
+        email: "",
+        otherInfo: {
+          job: "",
+          workplace: "",
+          income: "",
+          emergencyContactName: "",
+          emergencyContactPhone: "",
+        },
+        status: CustomerStatus.NORMAL,
+        familyInfo: {
+          father: { fullName: "", phone: "", job: "" },
+          mother: { fullName: "", phone: "", job: "" },
+          spouse: { fullName: "", phone: "", job: "" },
+        },
+      },
+      contractNumber: dto.loanCode || dto.id,
+      status: dto.status, // Keep original status string for UI badges
+    };
+  },
+};
 
 // Helper to handle the 'contractNumber' field which is effectively 'id' or derived
-export const LoanAdapterWithContractNumber: BaseAdapter<loan & { contractNumber: string }, any> = {
+export const LoanAdapterWithContractNumber: BaseAdapter<
+  loan & { contractNumber: string },
+  any
+> = {
   toDomain(dto: any): loan & { contractNumber: string } {
-      if (dto.loanCode) {
-          return LoanSummaryAdapter.toDomain(dto);
-      }
+    if (dto.loanCode) {
+      return LoanSummaryAdapter.toDomain(dto);
+    }
     const domain = LoanAdapter.toDomain(dto);
     return {
       ...domain,
