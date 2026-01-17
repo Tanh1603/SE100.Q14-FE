@@ -10,6 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -54,6 +61,7 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
   const [items, setItems] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,7 +85,7 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
             status: "SUCCESS", // Mock status
             flow: "IN",
             details: p,
-          })
+          }),
         );
 
         // Normalize Disbursements
@@ -106,19 +114,13 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
             status: c.status,
             flow: "NONE",
             details: c,
-          })
+          }),
         );
 
         // Merge and Sort
-        const allItems = [
-          ...paymentItems,
-          ...disbursementItems,
-          ...commItems,
-        ].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
+        const allItems = [...paymentItems, ...disbursementItems, ...commItems];
 
-        setItems(allItems);
+        setItems(processItems(allItems));
       } catch (error) {
         console.error("Failed to fetch transaction history", error);
       } finally {
@@ -133,7 +135,7 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) =>
-      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      item.description.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [items, searchTerm]);
 
@@ -192,12 +194,78 @@ export function TransactionHistory({ loanId }: TransactionHistoryProps) {
               getIcon={getIcon}
             />
             <div className="flex justify-center mt-4">
-              <Button variant="outline" className="w-full">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setIsHistoryDialogOpen(true)}
+              >
                 <Phone className="mr-2 h-4 w-4" /> Xem chi tiết lịch sử cuộc gọi
               </Button>
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={isHistoryDialogOpen}
+          onOpenChange={setIsHistoryDialogOpen}
+        >
+          <DialogContent className="max-w-7xl">
+            <DialogHeader>
+              <DialogTitle>Chi tiết lịch sử trao đổi</DialogTitle>
+              <DialogDescription>
+                Danh sách chi tiết các cuộc gọi, tin nhắn và ghi chú
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Thời gian</TableHead>
+                    <TableHead>Kênh</TableHead>
+                    <TableHead>Tiêu đề</TableHead>
+                    <TableHead>Nội dung</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items
+                    .filter((i) => i.type === "COMMUNICATION")
+                    .map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {safeFormatDate(item.date)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {item.details?.channel || "N/A"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.details?.subject || "-"}</TableCell>
+                        <TableCell
+                          className="max-w-[300px] truncate"
+                          title={item.details?.message}
+                        >
+                          {item.details?.message || "-"}
+                        </TableCell>
+                        <TableCell>{item.details?.notes || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  {items.filter((i) => i.type === "COMMUNICATION").length ===
+                    0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-muted-foreground h-24"
+                      >
+                        Chưa có dữ liệu
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -269,5 +337,44 @@ function TransactionTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function processItems(items: TransactionItem[]): TransactionItem[] {
+  const translated = items.map((item) => {
+    let description = item.description;
+
+    // Translate English descriptions
+    if (description.includes("Disbursement for approved loan")) {
+      description = "Giải ngân khoản vay";
+    } else if (description.includes("LOAN_APPROVED: LOAN_APPROVED")) {
+      description = "LOAN_APPROVED: Thông báo khoản vay được duyệt";
+    }
+
+    return { ...item, description };
+  });
+
+  const uniqueItems: TransactionItem[] = [];
+
+  translated.forEach((item) => {
+    const isDuplicate = uniqueItems.some((existing) => {
+      const timeDiff = Math.abs(
+        new Date(existing.date).getTime() - new Date(item.date).getTime(),
+      );
+      return (
+        existing.type === item.type &&
+        existing.description === item.description &&
+        (existing.amount || 0) === (item.amount || 0) &&
+        timeDiff < 60000 // 1 minute window
+      );
+    });
+
+    if (!isDuplicate) {
+      uniqueItems.push(item);
+    }
+  });
+
+  return uniqueItems.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 }

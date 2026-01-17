@@ -4,6 +4,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { FileBarChart } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { Role } from "@/types/constant";
+import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QuarterlyReportTab from "@/components/features/reports/quarterly-report-tab";
 import RevenueReportTab from "@/components/features/reports/revenue-report-tab";
@@ -11,7 +12,7 @@ import PoliceBookTab from "@/components/features/reports/police-book-tab";
 
 const ReportsPage = () => {
   const { user } = useUser();
-  const userRole = (user?.publicMetadata?.role as Role) || "staff";
+  const userRole = getUserRole(user?.publicMetadata);
 
   return (
     <SidebarInset>
@@ -25,10 +26,7 @@ const ReportsPage = () => {
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="police-book">Sổ quản lý ANTT</TabsTrigger>
             <TabsTrigger value="quarterly">Báo cáo Quý (ĐK13)</TabsTrigger>
-            <TabsTrigger
-              value="revenue"
-              disabled={!["admin", "manager"].includes(userRole)}
-            >
+            <TabsTrigger value="revenue" disabled={!isManagerOrAdmin(userRole)}>
               Báo cáo doanh thu
             </TabsTrigger>
           </TabsList>

@@ -1,6 +1,6 @@
 import { Location } from "@/types/location";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export const locationKeys = {
   all: ["locations"] as const,
@@ -19,7 +19,9 @@ export const LocationService = {
         },
       });
       const data = await res.json();
-      return data as Location[];
+      if (Array.isArray(data)) return data as Location[];
+      if (data && Array.isArray((data as any).data)) return (data as any).data as Location[];
+      return [];
     } catch (error) {
       console.log(error);
       throw error;
@@ -38,7 +40,9 @@ export const LocationService = {
         },
       });
       const data = await res.json();
-      return data as Location[];
+      if (Array.isArray(data)) return data as Location[];
+      if (data && Array.isArray((data as any).data)) return (data as any).data as Location[];
+      return [];
     } catch (error) {
       throw error;
     }

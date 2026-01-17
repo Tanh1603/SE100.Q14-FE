@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { LoanDetailDTO } from "@/types/dto/loan.dto";
 import { format } from "date-fns";
 import { User, Phone, MapPin, CreditCard, Calendar, Box } from "lucide-react";
+import { StoreLabel } from "./store-label";
 
 interface ContractOverviewProps {
   loan: LoanDetailDTO;
@@ -191,7 +192,7 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
                               "serial",
                               "condition",
                               "description",
-                            ].includes(k)
+                            ].includes(k),
                         )
                         .map(([k, v]) => (
                           <div key={k}>
@@ -229,10 +230,7 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
                     <div className="text-xs text-muted-foreground text-right mt-1">
                       {item.storageLocation ? (
                         <>
-                          Kho:{" "}
-                          <span className="text-foreground">
-                            {item.storageLocation}
-                          </span>
+                          Kho: <StoreLabel storeId={item.storageLocation} />
                         </>
                       ) : (
                         <span className="italic">Chưa nhập kho</span>

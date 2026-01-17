@@ -9,6 +9,8 @@ import {
   Banknote,
   Eye,
   MessageSquare,
+  Check,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -34,7 +36,7 @@ export type AssetColumnDef = {
 };
 
 export const AssetColumn = (
-  onDelete: (row: AssetColumnDef) => void
+  onDelete: (row: AssetColumnDef) => void,
 ): ColumnDef<AssetColumnDef>[] => [
   {
     accessorKey: "name",
@@ -103,13 +105,63 @@ const formatCurrency = (value: number) => {
 };
 
 const LoanActions = ({ row }: { row: any }) => {
-  // Get the loan status - show action buttons for ACTIVE and OVERDUE loans
+  // Get the loan status
   const rawStatus = (row.original as any).status || row.original.asset?.status;
   const isActiveLoan = rawStatus === "ACTIVE";
   const isOverdueLoan = rawStatus === "OVERDUE";
+  const isPendingLoan = rawStatus === "PENDING";
   const showPaymentActions = isActiveLoan || isOverdueLoan;
 
-  // If not an active or overdue loan, only show the view button
+  // PENDING loans - show approve/reject buttons
+  if (isPendingLoan) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 px-2"
+          title="Xem chi tiết"
+        >
+          <Eye className="w-4 h-4 text-gray-500" />
+        </Button>
+        <Button
+          size="sm"
+          className="h-8 bg-green-600 hover:bg-green-700 text-white"
+          onClick={() => {
+            const event = new CustomEvent("approve-loan", {
+              detail: {
+                loanId: row.original.id,
+                loanCode:
+                  (row.original as any).contractNumber || row.original.id,
+              },
+            });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Check className="w-4 h-4 mr-1" /> Duyệt
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="h-8"
+          onClick={() => {
+            const event = new CustomEvent("reject-loan", {
+              detail: {
+                loanId: row.original.id,
+                loanCode:
+                  (row.original as any).contractNumber || row.original.id,
+              },
+            });
+            window.dispatchEvent(event);
+          }}
+        >
+          <X className="w-4 h-4 mr-1" /> Từ chối
+        </Button>
+      </div>
+    );
+  }
+
+  // Non-actionable states (CLOSED, REJECTED, etc.) - only show view button
   if (!showPaymentActions) {
     return (
       <div className="flex items-center gap-2">
@@ -125,6 +177,7 @@ const LoanActions = ({ row }: { row: any }) => {
     );
   }
 
+  // ACTIVE and OVERDUE loans - show payment actions
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -222,6 +275,18 @@ export const LoanColumn: ColumnDef<loan>[] = [
     ),
   },
   {
+    accessorKey: "loanDate",
+    header: "Ngày vay",
+    cell: ({ row }) => {
+      const dateStr = row.getValue("loanDate") as string;
+      if (!dateStr)
+        return <span className="text-muted-foreground">--/--/----</span>;
+      // Handle both ISO strings and YYYY-MM-DD
+      const date = new Date(dateStr);
+      return <span>{new Intl.DateTimeFormat("vi-VN").format(date)}</span>;
+    },
+  },
+  {
     id: "status",
     accessorKey: "status", // Use the direct status string if available from adapter
     header: "Trạng thái",
@@ -238,33 +303,41 @@ export const LoanColumn: ColumnDef<loan>[] = [
 
       switch (rawStatus) {
         case "ACTIVE":
-          badgeVariant = "default";
+          badgeVariant = "outline";
+          badgeClassName =
+            "bg-green-100 text-green-800 hover:bg-green-100 border-green-200";
           label = "Đang vay";
           break;
         case "OVERDUE":
-          badgeVariant = "destructive"; // Keep variant for base styles
+          badgeVariant = "destructive";
           badgeClassName =
-            "bg-red-600 hover:bg-red-700 text-white font-bold border-none"; // Custom override
+            "bg-red-600 hover:bg-red-700 text-white font-bold border-transparent";
           label = "Quá hạn";
           break;
         case "CLOSED":
           badgeVariant = "secondary";
+          badgeClassName =
+            "bg-slate-800 text-slate-100 hover:bg-slate-700 border-transparent";
           label = "Đã đóng";
           break;
         case "PENDING":
           badgeVariant = "outline";
+          badgeClassName =
+            "bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200";
           label = "Chờ duyệt";
           break;
         case "REJECTED":
           badgeVariant = "destructive";
           badgeClassName =
-            "bg-red-600 hover:bg-red-700 text-white font-bold border-none";
+            "bg-rose-100 text-rose-800 hover:bg-rose-100 border-rose-200";
           label = "Từ chối";
           break;
         default:
           // Fallback for AssetStatus enum values
           if (rawStatus === AssetStatus.PLEDGED) {
             badgeVariant = "default";
+            badgeClassName =
+              "bg-indigo-100 text-indigo-800 hover:bg-indigo-100 border-indigo-200";
             label = "Đang cầm";
           }
           break;

@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Pawn Manager API
   description: API for managing pawn shop operations, including loans, customers, payments, collateral, disbursements, and stores.
-  version: "1.0"
+  version: '1.0'
 servers:
   - url: /v1
     description: V1 API Endpoint
@@ -76,7 +76,7 @@ components:
         address:
           type: string
         customerType:
-          $ref: "#/components/schemas/CustomerType"
+          $ref: '#/components/schemas/CustomerType'
         monthlyIncome:
           type: number
           minimum: 3000000
@@ -151,6 +151,8 @@ components:
           enum: [EXCELLENT, GOOD, FAIR, POOR]
         mileage:
           type: integer
+        assessmentAmount:
+          type: number
 
     ValuationResponse:
       type: object
@@ -182,6 +184,9 @@ components:
         valuationDate:
           type: string
           format: date-time
+        valuationMethod:
+          type: string
+          enum: [AI, MANUAL]
         notes:
           type: string
 
@@ -190,25 +195,25 @@ components:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/CustomerResponse"
+          $ref: '#/components/schemas/CustomerResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     StoreResponseWrapper:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/StoreResponse"
+          $ref: '#/components/schemas/StoreResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     CollateralAssetResponseWrapper:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/CollateralAssetResponse"
+          $ref: '#/components/schemas/CollateralAssetResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     LiquidationCollateralResponse:
       type: object
@@ -229,17 +234,17 @@ components:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/LiquidationCollateralResponse"
+          $ref: '#/components/schemas/LiquidationCollateralResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     ValuationResponseWrapper:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/ValuationResponse"
+          $ref: '#/components/schemas/ValuationResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     BooleanResponseWrapper:
       type: object
@@ -247,7 +252,7 @@ components:
         data:
           type: boolean
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     CustomerResponse:
       type: object
@@ -269,7 +274,7 @@ components:
         address:
           type: string
         customerType:
-          $ref: "#/components/schemas/CustomerType"
+          $ref: '#/components/schemas/CustomerType'
         monthlyIncome:
           type: number
         creditScore:
@@ -282,9 +287,9 @@ components:
         activeLoans:
           type: array
           items:
-            $ref: "#/components/schemas/ActiveLoan"
+            $ref: '#/components/schemas/ActiveLoan'
         loanHistory:
-          $ref: "#/components/schemas/LoanHistory"
+          $ref: '#/components/schemas/LoanHistory'
         fatherName:
           type: string
         fatherPhone:
@@ -318,9 +323,9 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/CustomerResponse"
+            $ref: '#/components/schemas/CustomerResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     # --- LOAN ---
     RepaymentMethod:
@@ -346,7 +351,7 @@ components:
         loanAmount:
           type: number
         repaymentMethod:
-          $ref: "#/components/schemas/RepaymentMethod"
+          $ref: '#/components/schemas/RepaymentMethod'
         loanTypeId:
           type: integer
         notes:
@@ -375,7 +380,7 @@ components:
         loanAmount:
           type: number
         repaymentMethod:
-          $ref: "#/components/schemas/RepaymentMethod"
+          $ref: '#/components/schemas/RepaymentMethod'
         loanTypeId:
           type: integer
         notes:
@@ -396,7 +401,7 @@ components:
         loanAmount:
           type: number
         repaymentMethod:
-          $ref: "#/components/schemas/RepaymentMethod"
+          $ref: '#/components/schemas/RepaymentMethod'
         loanTypeId:
           type: integer
         loanTypeName:
@@ -416,7 +421,7 @@ components:
         monthlyPayment:
           type: number
         status:
-          $ref: "#/components/schemas/LoanStatus"
+          $ref: '#/components/schemas/LoanStatus'
         startDate:
           type: string
           format: date-time
@@ -437,11 +442,11 @@ components:
           type: string
           format: date-time
         customer:
-          $ref: "#/components/schemas/CustomerResponse"
+          $ref: '#/components/schemas/CustomerResponse'
         collateral:
           type: array
           items:
-            $ref: "#/components/schemas/CollateralAssetResponse"
+            $ref: '#/components/schemas/CollateralAssetResponse'
 
     LoanSummaryResponseDto:
       type: object
@@ -465,9 +470,9 @@ components:
         loanTypeName:
           type: string
         repaymentMethod:
-          $ref: "#/components/schemas/RepaymentMethod"
+          $ref: '#/components/schemas/RepaymentMethod'
         status:
-          $ref: "#/components/schemas/LoanStatus"
+          $ref: '#/components/schemas/LoanStatus'
         startDate:
           type: string
         activatedAt:
@@ -481,9 +486,9 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/LoanSummaryResponseDto"
+            $ref: '#/components/schemas/LoanSummaryResponseDto'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     # --- PAYMENT ---
     PaymentMethod:
@@ -508,9 +513,9 @@ components:
         amount:
           type: number
         paymentMethod:
-          $ref: "#/components/schemas/PaymentMethod"
+          $ref: '#/components/schemas/PaymentMethod'
         paymentType:
-          $ref: "#/components/schemas/PaymentType"
+          $ref: '#/components/schemas/PaymentType'
         notes:
           type: string
 
@@ -540,9 +545,9 @@ components:
         amount:
           type: number
         paymentType:
-          $ref: "#/components/schemas/PaymentType"
+          $ref: '#/components/schemas/PaymentType'
         paymentMethod:
-          $ref: "#/components/schemas/PaymentMethod"
+          $ref: '#/components/schemas/PaymentMethod'
         paidAt:
           type: string
           format: date-time
@@ -555,9 +560,9 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/PaymentListItem"
+            $ref: '#/components/schemas/PaymentListItem'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     # --- DISBURSEMENT ---
     DisbursementMethod:
@@ -582,7 +587,7 @@ components:
         amount:
           type: number
         disbursementMethod:
-          $ref: "#/components/schemas/DisbursementMethod"
+          $ref: '#/components/schemas/DisbursementMethod'
         recipientName:
           type: string
         recipientIdNumber:
@@ -610,7 +615,7 @@ components:
         amount:
           type: number
         disbursementMethod:
-          $ref: "#/components/schemas/DisbursementMethod"
+          $ref: '#/components/schemas/DisbursementMethod'
         disbursedAt:
           type: string
         referenceCode:
@@ -633,7 +638,7 @@ components:
         amount:
           type: number
         disbursementMethod:
-          $ref: "#/components/schemas/DisbursementMethod"
+          $ref: '#/components/schemas/DisbursementMethod'
         disbursedAt:
           type: string
         referenceCode:
@@ -657,15 +662,15 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/DisbursementListItem"
+            $ref: '#/components/schemas/DisbursementListItem'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     DisbursementResponseWrapper:
       type: object
       properties:
         data:
-          $ref: "#/components/schemas/DisbursementDetailsResponse"
+          $ref: '#/components/schemas/DisbursementDetailsResponse'
 
     # --- COLLATERAL ---
     CollateralStatus:
@@ -677,6 +682,7 @@ components:
       required:
         - collateralTypeId
         - ownerName
+        - appraisedValue
       properties:
         collateralTypeId:
           type: integer
@@ -686,7 +692,7 @@ components:
           type: object
           additionalProperties: true
         status:
-          $ref: "#/components/schemas/CollateralStatus"
+          $ref: '#/components/schemas/CollateralStatus'
         loanId:
           type: string
           format: uuid
@@ -695,6 +701,13 @@ components:
         receivedDate:
           type: string
           format: date
+        appraisedValue:
+          type: number
+        appraisalDate:
+          type: string
+          format: date-time
+        appraisalNotes:
+          type: string
 
     PatchCollateralDTO:
       type: object
@@ -704,7 +717,7 @@ components:
         collateralInfo:
           type: object
         status:
-          $ref: "#/components/schemas/CollateralStatus"
+          $ref: '#/components/schemas/CollateralStatus'
         storageLocation:
           type: string
 
@@ -728,7 +741,7 @@ components:
         collateralInfo:
           type: object
         status:
-          $ref: "#/components/schemas/CollateralStatus"
+          $ref: '#/components/schemas/CollateralStatus'
         loanId:
           type: string
         storageLocation:
@@ -746,20 +759,29 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/CollateralAssetResponse"
+            $ref: '#/components/schemas/CollateralAssetResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
-    CreateLiquidationRequest:
+    InitiateLiquidationDto:
       type: object
+      required:
+        - collateralId
+        - minimumSalePrice
       properties:
-        # Simplified based on Collateral logic often requiring an ID and amount
         collateralId:
           type: string
-        soldPrice:
+          format: uuid
+        minimumSalePrice:
           type: number
-        soldDate:
-          type: string
+
+    FinalizeLiquidationDto:
+      type: object
+      required:
+        - sellPrice
+      properties:
+        sellPrice:
+          type: number
 
     # --- STORE ---
     CreateStoreDTO:
@@ -805,9 +827,9 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/StoreResponse"
+            $ref: '#/components/schemas/StoreResponse'
         meta:
-          $ref: "#/components/schemas/PaginationMeta"
+          $ref: '#/components/schemas/PaginationMeta'
 
     # --- REPORTS ---
     RevenueReportQuery:
@@ -855,11 +877,11 @@ components:
         totalRevenue:
           type: number
         breakdown:
-          $ref: "#/components/schemas/RevenueBreakdown"
+          $ref: '#/components/schemas/RevenueBreakdown'
         totalExpense:
           type: number
         expenseBreakdown:
-          $ref: "#/components/schemas/ExpenseBreakdown"
+          $ref: '#/components/schemas/ExpenseBreakdown'
 
     RevenueSummary:
       type: object
@@ -885,9 +907,9 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/RevenueReportResponse"
+            $ref: '#/components/schemas/RevenueReportResponse'
         summary:
-          $ref: "#/components/schemas/RevenueSummary"
+          $ref: '#/components/schemas/RevenueSummary'
 
     DailyLogResponse:
       type: object
@@ -898,13 +920,13 @@ components:
         newLoans:
           type: array
           items:
-            $ref: "#/components/schemas/DailyLogEntry"
+            $ref: '#/components/schemas/DailyLogEntry'
         closedLoans:
           type: array
           items:
-            $ref: "#/components/schemas/DailyLogEntry"
+            $ref: '#/components/schemas/DailyLogEntry'
         summary:
-          $ref: "#/components/schemas/DailyLogSummary"
+          $ref: '#/components/schemas/DailyLogSummary'
 
     DailyLogEntry:
       type: object
@@ -952,9 +974,9 @@ components:
         period:
           type: string
         statistics:
-          $ref: "#/components/schemas/QuarterlyStatistics"
+          $ref: '#/components/schemas/QuarterlyStatistics'
         compliance:
-          $ref: "#/components/schemas/QuarterlyCompliance"
+          $ref: '#/components/schemas/QuarterlyCompliance'
 
     QuarterlyStatistics:
       type: object
@@ -988,6 +1010,52 @@ components:
               type: number
             liquidationProfit:
               type: number
+        assetBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetBreakdownItem'
+        employees:
+          $ref: '#/components/schemas/EmployeeReport'
+        security:
+          $ref: '#/components/schemas/SecurityPersonnelReport'
+
+    AssetBreakdownItem:
+      type: object
+      properties:
+        category:
+          type: string
+        receivedCount:
+          type: number
+        receivedValue:
+          type: number
+        releasedCount:
+          type: number
+        releasedValue:
+          type: number
+        liquidatedCount:
+          type: number
+        liquidatedValue:
+          type: number
+        inStockCount:
+          type: number
+        inStockValue:
+          type: number
+
+    EmployeeReport:
+      type: object
+      properties:
+        total:
+          type: number
+        male:
+          type: number
+        female:
+          type: number
+
+    SecurityPersonnelReport:
+      type: object
+      properties:
+        count:
+          type: number
 
     QuarterlyCompliance:
       type: object
@@ -1050,6 +1118,69 @@ components:
           type: string
         description:
           type: string
+
+    # --- LOAN TYPES ---
+    LoanTypeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the loan type
+        name:
+          type: string
+          description: Name of the loan type
+        description:
+          type: string
+          description: Description of the loan type
+        durationMonths:
+          type: number
+          description: Duration of the loan type in months
+        interestRateMonthly:
+          type: number
+          description: Annual interest rate of the loan type
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the loan type was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the loan type was last updated
+
+    CreateLoanTypeDto:
+      type: object
+      required:
+        - name
+        - durationMonths
+        - interestRateMonthly
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        durationMonths:
+          type: number
+          minimum: 1
+        interestRateMonthly:
+          type: number
+          minimum: 0
+
+    UpdateLoanTypeDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        durationMonths:
+          type: number
+          minimum: 1
+        interestRateMonthly:
+          type: number
+          minimum: 0
+
     # --- REPAYMENT SCHEDULE ---
     RepaymentItemStatus:
       type: string
@@ -1078,7 +1209,7 @@ components:
         totalAmount:
           type: number
         status:
-          $ref: "#/components/schemas/RepaymentItemStatus"
+          $ref: '#/components/schemas/RepaymentItemStatus'
         paidPrincipal:
           type: number
         paidInterest:
@@ -1089,6 +1220,52 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    CustomerInfoResponse:
+      type: object
+      properties:
+        fullName:
+          type: string
+        phone:
+          type: string
+        nationalId:
+          type: string
+
+    OverdueLoanResponse:
+      type: object
+      properties:
+        loanId:
+          type: string
+          format: uuid
+        loanCode:
+          type: string
+        loanStatus:
+          $ref: '#/components/schemas/LoanStatus'
+        customer:
+          $ref: '#/components/schemas/CustomerInfoResponse'
+        totalOverdueAmount:
+          type: number
+        overduePeriodsCount:
+          type: integer
+        earliestOverdueDate:
+          type: string
+          format: date
+        daysOverdue:
+          type: integer
+        overdueItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepaymentScheduleItemResponse'
+
+    OverdueLoanResponseWrapper:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverdueLoanResponse'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
 
     # --- COMMUNICATION ---
     NotificationType:
@@ -1123,11 +1300,11 @@ components:
           type: string
           format: uuid
         type:
-          $ref: "#/components/schemas/NotificationType"
+          $ref: '#/components/schemas/NotificationType'
         channel:
-          $ref: "#/components/schemas/NotificationChannel"
+          $ref: '#/components/schemas/NotificationChannel'
         status:
-          $ref: "#/components/schemas/NotificationStatus"
+          $ref: '#/components/schemas/NotificationStatus'
         subject:
           type: string
           maxLength: 200
@@ -1147,11 +1324,11 @@ components:
         id:
           type: string
         type:
-          $ref: "#/components/schemas/NotificationType"
+          $ref: '#/components/schemas/NotificationType'
         channel:
-          $ref: "#/components/schemas/NotificationChannel"
+          $ref: '#/components/schemas/NotificationChannel'
         status:
-          $ref: "#/components/schemas/NotificationStatus"
+          $ref: '#/components/schemas/NotificationStatus'
         loanId:
           type: string
         customerId:
@@ -1199,7 +1376,7 @@ components:
         loanTypeId:
           type: integer
         repaymentMethod:
-          $ref: "#/components/schemas/RepaymentMethod"
+          $ref: '#/components/schemas/RepaymentMethod'
 
     LoanSimulationScheduleItem:
       type: object
@@ -1246,12 +1423,80 @@ components:
         schedule:
           type: array
           items:
-            $ref: "#/components/schemas/LoanSimulationScheduleItem"
+            $ref: '#/components/schemas/LoanSimulationScheduleItem'
 
 security:
   - bearerAuth: []
 
 paths:
+  # --- LOAN TYPES ---
+  /loan-types:
+    get:
+      summary: List loan types
+      tags: [Loan Types]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LoanTypeResponse'
+                required:
+                  - data
+    post:
+      summary: Create loan type
+      tags: [Loan Types]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLoanTypeDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoanTypeResponse'
+                required:
+                  - data
+
+  /loan-types/{id}:
+    patch:
+      summary: Update loan type
+      tags: [Loan Types]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLoanTypeDto'
+      responses:
+        '201':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoanTypeResponse'
+                required:
+                  - data
+
   # --- LOAN SIMULATIONS ---
   /loan-simulations:
     post:
@@ -1261,14 +1506,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoanSimulationRequestDto"
+              $ref: '#/components/schemas/LoanSimulationRequestDto'
       responses:
-        "201":
+        '201':
           description: Simulation created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LoanSimulationResponse"
+                $ref: '#/components/schemas/LoanSimulationResponse'
 
   # --- CUSTOMERS ---
   /customers:
@@ -1291,12 +1536,12 @@ paths:
             type: integer
             default: 20
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomerListResponse"
+                $ref: '#/components/schemas/CustomerListResponse'
     post:
       summary: Create customer
       tags: [Customers]
@@ -1305,7 +1550,7 @@ paths:
           multipart/form-data:
             schema:
               allOf:
-                - $ref: "#/components/schemas/CreateCustomerDTO"
+                - $ref: '#/components/schemas/CreateCustomerDTO'
                 - type: object
                   properties:
                     mattruoc:
@@ -1315,12 +1560,12 @@ paths:
                       type: string
                       format: binary
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomerResponseWrapper"
+                $ref: '#/components/schemas/CustomerResponseWrapper'
 
   /customers/{id}:
     get:
@@ -1333,12 +1578,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomerResponseWrapper"
+                $ref: '#/components/schemas/CustomerResponseWrapper'
     patch:
       summary: Update customer
       tags: [Customers]
@@ -1353,7 +1598,7 @@ paths:
           multipart/form-data:
             schema:
               allOf:
-                - $ref: "#/components/schemas/UpdateCustomerRequest"
+                - $ref: '#/components/schemas/UpdateCustomerRequest'
                 - type: object
                   properties:
                     mattruoc:
@@ -1363,12 +1608,12 @@ paths:
                       type: string
                       format: binary
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomerResponseWrapper"
+                $ref: '#/components/schemas/CustomerResponseWrapper'
 
   # --- LOANS ---
   /loans:
@@ -1387,7 +1632,7 @@ paths:
         - name: status
           in: query
           schema:
-            $ref: "#/components/schemas/LoanStatus"
+            $ref: '#/components/schemas/LoanStatus'
         - name: customerId
           in: query
           schema:
@@ -1403,12 +1648,12 @@ paths:
             type: integer
             default: 20
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListLoansResponseDto"
+                $ref: '#/components/schemas/ListLoansResponseDto'
     post:
       summary: Create loan
       tags: [Loans]
@@ -1416,9 +1661,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateLoanDto"
+              $ref: '#/components/schemas/CreateLoanDto'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
@@ -1426,7 +1671,57 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
-                  loan: { $ref: "#/components/schemas/LoanResponseDto" }
+                  loan: { $ref: '#/components/schemas/LoanResponseDto' }
+
+  /loans/overdue:
+    get:
+      summary: Get overdue loans with their overdue repayment items
+      tags: [Loans]
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: storeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverdueLoanResponseWrapper'
 
   /loans/{id}:
     get:
@@ -1439,12 +1734,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LoanResponseDto"
+                $ref: '#/components/schemas/LoanResponseDto'
     patch:
       summary: Update loan details
       tags: [Loans]
@@ -1458,9 +1753,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLoanDto"
+              $ref: '#/components/schemas/UpdateLoanDto'
       responses:
-        "200":
+        '200':
           description: Updated
 
   /loans/{id}/status:
@@ -1477,9 +1772,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ApproveLoanDto"
+              $ref: '#/components/schemas/ApproveLoanDto'
       responses:
-        "200":
+        '200':
           description: Status updated
 
   # --- PAYMENTS ---
@@ -1520,11 +1815,11 @@ paths:
         - name: paymentMethod
           in: query
           schema:
-            $ref: "#/components/schemas/PaymentMethod"
+            $ref: '#/components/schemas/PaymentMethod'
         - name: paymentType
           in: query
           schema:
-            $ref: "#/components/schemas/PaymentType"
+            $ref: '#/components/schemas/PaymentType'
         - name: dateFrom
           in: query
           schema:
@@ -1544,12 +1839,12 @@ paths:
           schema:
             type: number
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListPaymentsResponse"
+                $ref: '#/components/schemas/ListPaymentsResponse'
     post:
       summary: Create Payment
       tags: [Payments]
@@ -1563,15 +1858,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PaymentRequestDto"
+              $ref: '#/components/schemas/PaymentRequestDto'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaymentResponse"
-        "409":
+                $ref: '#/components/schemas/PaymentResponse'
+        '409':
           description: Duplicate Idempotency Key
 
   # --- DISBURSEMENT ---
@@ -1603,12 +1898,12 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListDisbursementsResponse"
+                $ref: '#/components/schemas/ListDisbursementsResponse'
     post:
       summary: Create disbursement
       tags: [Disbursements]
@@ -1622,14 +1917,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DisbursementRequestDto"
+              $ref: '#/components/schemas/DisbursementRequestDto'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DisbursementResponseWrapper"
+                $ref: '#/components/schemas/DisbursementResponseWrapper'
 
   # --- COLLATERAL ---
   /collateral-assets:
@@ -1650,12 +1945,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CollateralAssetListResponse"
+                $ref: '#/components/schemas/CollateralAssetListResponse'
     post:
       summary: Create collateral
       tags: [Collateral]
@@ -1664,7 +1959,7 @@ paths:
           multipart/form-data:
             schema:
               allOf:
-                - $ref: "#/components/schemas/CreateCollateralDTO"
+                - $ref: '#/components/schemas/CreateCollateralDTO'
                 - type: object
                   properties:
                     files:
@@ -1673,12 +1968,12 @@ paths:
                         type: string
                         format: binary
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CollateralAssetResponseWrapper"
+                $ref: '#/components/schemas/CollateralAssetResponseWrapper'
 
   /collateral-assets/{id}:
     get:
@@ -1691,12 +1986,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CollateralAssetResponseWrapper"
+                $ref: '#/components/schemas/CollateralAssetResponseWrapper'
     patch:
       summary: Update collateral
       tags: [Collateral]
@@ -1711,7 +2006,7 @@ paths:
           multipart/form-data:
             schema:
               allOf:
-                - $ref: "#/components/schemas/PatchCollateralDTO"
+                - $ref: '#/components/schemas/PatchCollateralDTO'
                 - type: object
                   properties:
                     files:
@@ -1720,12 +2015,12 @@ paths:
                         type: string
                         format: binary
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CollateralAssetResponseWrapper"
+                $ref: '#/components/schemas/CollateralAssetResponseWrapper'
 
   /collaterals/{id}/location:
     put:
@@ -1741,31 +2036,58 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLocationRequest"
+              $ref: '#/components/schemas/UpdateLocationRequest'
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BooleanResponseWrapper"
+                $ref: '#/components/schemas/BooleanResponseWrapper'
 
+  # --- LIQUIDATION ---
   /liquidations:
     post:
-      summary: Liquidate collateral
-      tags: [Collateral]
+      summary: Initiate liquidation process
+      tags: [Liquidation]
+      description: Mark asset as LIQUIDATING and set minimum sale price. Loan must be OVERDUE.
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateLiquidationRequest"
+              $ref: '#/components/schemas/InitiateLiquidationDto'
       responses:
-        "201":
-          description: Created
+        '201':
+          description: Liquidation initiated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidationResponseWrapper"
+                $ref: '#/components/schemas/CollateralAssetResponseWrapper'
+
+  /liquidations/{collateralId}/sell:
+    post:
+      summary: Finalize asset sale
+      tags: [Liquidation]
+      description: Record final sale price and close asset lifecycle (Status SOLD).
+      parameters:
+        - name: collateralId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeLiquidationDto'
+      responses:
+        '201':
+          description: Asset sold
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollateralAssetResponseWrapper'
 
   # --- ASSET VALUATION ---
   /asset-valuations:
@@ -1776,14 +2098,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ValuationRequestDto"
+              $ref: '#/components/schemas/ValuationRequestDto'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValuationResponseWrapper"
+                $ref: '#/components/schemas/ValuationResponseWrapper'
 
   # --- STORES ---
   /stores:
@@ -1804,12 +2126,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StoreListResponse"
+                $ref: '#/components/schemas/StoreListResponse'
     post:
       summary: Create store
       tags: [Stores]
@@ -1817,14 +2139,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateStoreDTO"
+              $ref: '#/components/schemas/CreateStoreDTO'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StoreResponseWrapper"
+                $ref: '#/components/schemas/StoreResponseWrapper'
 
   /stores/{id}:
     get:
@@ -1837,12 +2159,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StoreResponseWrapper"
+                $ref: '#/components/schemas/StoreResponseWrapper'
     patch:
       summary: Update store
       tags: [Stores]
@@ -1856,14 +2178,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateStoreDTO"
+              $ref: '#/components/schemas/UpdateStoreDTO'
       responses:
-        "200":
+        '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StoreResponseWrapper"
+                $ref: '#/components/schemas/StoreResponseWrapper'
 
   # --- REPORTS ---
   /reports/revenue:
@@ -1889,12 +2211,12 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RevenueReportListResponse"
+                $ref: '#/components/schemas/RevenueReportListResponse'
 
   /reports/daily-log:
     get:
@@ -1913,12 +2235,12 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DailyLogResponse"
+                $ref: '#/components/schemas/DailyLogResponse'
 
   /reports/quarterly:
     get:
@@ -1943,12 +2265,12 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/QuarterlyReportResponse"
+                $ref: '#/components/schemas/QuarterlyReportResponse'
 
   # --- LOCATION ---
   /provinces:
@@ -1961,14 +2283,14 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ProvinceResponse"
+                  $ref: '#/components/schemas/ProvinceResponse'
 
   /provinces/{code}/wards:
     get:
@@ -1985,14 +2307,14 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WardResponse"
+                  $ref: '#/components/schemas/WardResponse'
 
   # --- CONFIGURATIONS ---
   /configurations:
@@ -2013,7 +2335,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ConfigurationResponse"
+                  $ref: '#/components/schemas/ConfigurationResponse'
 
   /configurations/{key}:
     put:
@@ -2031,14 +2353,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateConfigurationDto"
+              $ref: '#/components/schemas/UpdateConfigurationDto'
       responses:
         200:
           description: Configuration updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConfigurationResponse"
+                $ref: '#/components/schemas/ConfigurationResponse'
 
   # --- REPAYMENT SCHEDULE ---
   /loans/{loanId}/repayment-schedule:
@@ -2052,7 +2374,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -2062,54 +2384,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/RepaymentScheduleItemResponse"
-
-  /repayment-schedules/overdue:
-    get:
-      summary: Get overdue repayment items
-      tags: [Repayment Schedule]
-      parameters:
-        - name: minDaysOverdue
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: sortBy
-          in: query
-          schema:
-            type: string
-        - name: sortOrder
-          in: query
-          schema:
-            type: string
-        - name: search
-          in: query
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/RepaymentScheduleItemResponse"
-                  meta:
-                    $ref: "#/components/schemas/PaginationMeta"
+                      $ref: '#/components/schemas/RepaymentScheduleItemResponse'
 
   /repayment-schedules/{id}:
     get:
@@ -2122,7 +2397,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -2130,7 +2405,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: "#/components/schemas/RepaymentScheduleItemResponse"
+                    $ref: '#/components/schemas/RepaymentScheduleItemResponse'
 
   # --- COMMUNICATION ---
   /communications/log:
@@ -2141,14 +2416,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LogCommunicationDto"
+              $ref: '#/components/schemas/LogCommunicationDto'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotificationLogResponse"
+                $ref: '#/components/schemas/NotificationLogResponse'
 
   /communications/loans/{loanId}/history:
     get:
@@ -2161,14 +2436,14 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/NotificationLogResponse"
+                  $ref: '#/components/schemas/NotificationLogResponse'
 
   /communications/promises-to-pay:
     get:
@@ -2186,11 +2461,11 @@ paths:
             type: string
             format: date
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/NotificationLogResponse"
+                  $ref: '#/components/schemas/NotificationLogResponse'

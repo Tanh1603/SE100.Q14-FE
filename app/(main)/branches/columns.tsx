@@ -24,9 +24,9 @@ export const BranchColumn: ColumnDef<Branch>[] = [
       const fullAddress =
         row.original.address +
         ", " +
-        row.original.ward.label +
+        (row.original.ward.name || row.original.ward.code) +
         ", " +
-        row.original.province.label;
+        (row.original.province.name || row.original.province.code);
 
       return <div>{fullAddress}</div>;
     },

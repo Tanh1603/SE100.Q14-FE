@@ -1,7 +1,7 @@
 import { PageResonse } from "@/types/result";
 import { CreateStaff, Staff } from "@/types/staff";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export const staffKeys = {
   all: ["staffs"] as const,

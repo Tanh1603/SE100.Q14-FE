@@ -6,8 +6,6 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AxiosProvider } from "@/components/providers/axios-provider";
 
-import { Toaster } from "sonner";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

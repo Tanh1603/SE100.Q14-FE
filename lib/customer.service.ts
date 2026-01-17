@@ -21,14 +21,14 @@ export const CustomerService = {
   getAll: async (
     page: number = 1,
     limit: number = 20,
-    search?: string
+    search?: string,
   ): Promise<CustomerListResponse> => {
     const params: Record<string, string | number> = { page, limit };
     if (search) params.search = search;
 
     const response = await apiClient.get<PagedCustomerResponseDTO>(
       ENDPOINTS.CUSTOMERS,
-      { params }
+      { params },
     );
 
     return {
@@ -39,21 +39,23 @@ export const CustomerService = {
 
   getById: async (id: string): Promise<Customer> => {
     const response = await apiClient.get<{ data: CustomerDTO }>(
-      ENDPOINTS.CUSTOMER_BY_ID(id)
+      ENDPOINTS.CUSTOMER_BY_ID(id),
     );
     return CustomerAdapter.toDomain(response.data.data);
   },
 
-  create: async (data: Partial<Customer> & { mattruoc?: File; matsau?: File }): Promise<Customer> => {
+  create: async (
+    data: Partial<Customer> & { mattruoc?: File; matsau?: File },
+  ): Promise<Customer> => {
     // If we have images, use FormData
     if (data.mattruoc || data.matsau) {
       const formData = new FormData();
       const payload = CustomerAdapter.toDTO!(data);
-      
+
       // Add all fields from payload to formData
       Object.entries(payload).forEach(([key, value]) => {
         if (value !== undefined) {
-          if (typeof value === 'object') {
+          if (typeof value === "object") {
             formData.append(key, JSON.stringify(value));
           } else {
             formData.append(key, value.toString());
@@ -64,33 +66,33 @@ export const CustomerService = {
       if (data.mattruoc) formData.append("mattruoc", data.mattruoc);
       if (data.matsau) formData.append("matsau", data.matsau);
 
-      const response = await apiClient.post<CustomerDTO>(
+      const response = await apiClient.post<{ data: CustomerDTO }>(
         ENDPOINTS.CUSTOMERS,
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
-      return CustomerAdapter.toDomain(response.data);
+      return CustomerAdapter.toDomain(response.data.data);
     }
 
     const payload = CustomerAdapter.toDTO!(data);
-    const response = await apiClient.post<CustomerDTO>(
+    const response = await apiClient.post<{ data: CustomerDTO }>(
       ENDPOINTS.CUSTOMERS,
-      payload
+      payload,
     );
-    return CustomerAdapter.toDomain(response.data);
+    return CustomerAdapter.toDomain(response.data.data);
   },
 
   update: async (id: string, data: Partial<Customer>): Promise<Customer> => {
     const payload = CustomerAdapter.toDTO!(data);
-    const response = await apiClient.put<CustomerDTO>(
+    const response = await apiClient.put<{ data: CustomerDTO }>(
       ENDPOINTS.CUSTOMER_BY_ID(id),
-      payload
+      payload,
     );
-    return CustomerAdapter.toDomain(response.data);
+    return CustomerAdapter.toDomain(response.data.data);
   },
 
   delete: async (id: string): Promise<void> => {

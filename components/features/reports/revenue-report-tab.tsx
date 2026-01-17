@@ -51,6 +51,7 @@ import { RoleGate } from "@/components/features/role/role-gate";
 import { StoreSelector } from "./store-selector";
 import { ReportService } from "@/lib/report.service";
 import { RevenueReportListResponse } from "@/types/report";
+import { Role } from "@/types/constant";
 
 const RevenueReportTab = () => {
   const [period, setPeriod] = useState("month");
@@ -60,11 +61,19 @@ const RevenueReportTab = () => {
 
   // Filters (Client side filtering of the fetched list if needed, or simplified)
   // Since the API takes startDate/endDate, we should map "Period" to dates.
+  // Helper to format date as YYYY-MM-DD in local time
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .split("T")[0],
-    to: new Date().toISOString().split("T")[0],
+    from: formatDateLocal(
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    ),
+    to: formatDateLocal(new Date()),
   });
 
   // Effect to update dates when period changes
@@ -86,30 +95,30 @@ const RevenueReportTab = () => {
     }
 
     setDateRange({
-      from: from.toISOString().split("T")[0],
-      to: to.toISOString().split("T")[0],
+      from: formatDateLocal(from),
+      to: formatDateLocal(to),
     });
   }, [period]);
 
-  const fetchData = async () => {
-    // If Admin/Owner and no store selected, maybe fetch all?
-    // Assuming API handles null storeId for aggregation
-    try {
-      setLoading(true);
-      const res = await ReportService.getRevenueReport(
-        dateRange.from,
-        dateRange.to,
-        storeId || undefined
-      );
-      setData(res);
-    } catch (error) {
-      console.error("Failed to fetch revenue report", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      // If Admin/Owner and no store selected, maybe fetch all?
+      // Assuming API handles null storeId for aggregation
+      try {
+        setLoading(true);
+        const res = await ReportService.getRevenueReport(
+          dateRange.from,
+          dateRange.to,
+          storeId || undefined,
+        );
+        setData(res);
+      } catch (error) {
+        console.error("Failed to fetch revenue report", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (dateRange.from && dateRange.to) {
       fetchData();
     }
@@ -128,7 +137,7 @@ const RevenueReportTab = () => {
       revenue: d.totalRevenue,
       expense: d.totalExpense,
       profit: d.totalRevenue - d.totalExpense,
-    })
+    }),
   );
 
   const pieData =
@@ -160,7 +169,7 @@ const RevenueReportTab = () => {
   return (
     <div className="space-y-6">
       <RoleGate
-        allowedRoles={["admin", "manager", "store_owner"]}
+        allowedRoles={[Role.ADMIN, Role.MANAGER]}
         fallback={
           <div className="flex flex-col items-center justify-center p-10 text-center bg-gray-50 rounded-lg border border-dashed text-gray-400">
             <ShieldAlert className="w-10 h-10 mb-2" />
@@ -223,11 +232,7 @@ const RevenueReportTab = () => {
             </div>
 
             <div className="flex items-end">
-              <Button
-                onClick={() => fetchData()}
-                disabled={loading}
-                className="w-full"
-              >
+              <Button disabled={loading} className="w-full">
                 {loading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -273,7 +278,8 @@ const RevenueReportTab = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600 font-mono">
                     {formatCurrency(
-                      (data.summary?.totalRevenue || 0) - (data.summary?.totalExpense || 0)
+                      (data.summary?.totalRevenue || 0) -
+                        (data.summary?.totalExpense || 0),
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -348,7 +354,9 @@ const RevenueReportTab = () => {
                             }
                           />
                           <Tooltip
-                            formatter={(value) => formatCurrency(value as any)}
+                            formatter={(value) =>
+                              formatCurrency(value as number)
+                            }
                             labelStyle={{ color: "#333" }}
                           />
                           <Legend />
@@ -424,10 +432,9 @@ const RevenueReportTab = () => {
                             <span>{item.name}</span>
                           </div>
                           <span className="font-semibold">
-                            {(
-                              data.summary?.totalRevenue 
-                                ? (item.value / data.summary.totalRevenue) * 100 
-                                : 0
+                            {(data.summary?.totalRevenue
+                              ? (item.value / data.summary.totalRevenue) * 100
+                              : 0
                             ).toFixed(1)}
                             %
                           </span>
@@ -472,11 +479,11 @@ const RevenueReportTab = () => {
                             </TableCell>
                             <TableCell className="text-right font-bold">
                               {formatCurrency(
-                                entry.totalRevenue - entry.totalExpense
+                                entry.totalRevenue - entry.totalExpense,
                               )}
                             </TableCell>
                           </TableRow>
-                        )
+                        ),
                       )}
                     </TableBody>
                   </Table>

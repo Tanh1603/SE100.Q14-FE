@@ -7,11 +7,16 @@ export type CollateralStatus =
   | "LIQUIDATING"
   | "SOLD";
 
+export interface CollateralImage {
+  url: string;
+  publicId: string;
+}
+
 export interface CollateralAssetResponse {
   id: string;
   collateralTypeId: number;
   ownerName: string;
-  collateralInfo: Record<string, any>;
+  collateralInfo: Record<string, unknown>;
   status: CollateralStatus;
   loanId?: string;
   loanCode?: string; // Optional: Enriched field
@@ -19,6 +24,13 @@ export interface CollateralAssetResponse {
   receivedDate?: string;
   appraisedValue?: number;
   ltvRatio?: number;
+  sellPrice?: number; // Giá định bán (LIQUIDATING) or Giá bán thực tế (SOLD)
+  sellDate?: string;
+  appraisalDate?: string;
+  appraisalNotes?: string;
+  images?: CollateralImage[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CollateralListResponse {
@@ -35,8 +47,11 @@ export interface UpdateLocationRequest {
   storageLocation: string;
 }
 
-export interface CreateLiquidationRequest {
+export interface InitiateLiquidationRequest {
   collateralId: string;
-  soldPrice: number;
-  soldDate: string;
+  minimumSalePrice: number;
+}
+
+export interface FinalizeLiquidationRequest {
+  sellPrice: number;
 }

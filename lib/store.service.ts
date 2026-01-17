@@ -14,8 +14,10 @@ export const StoreService = {
     return data;
   },
 
-  getStoreById: async (id: string) => {
-    const { data } = await apiClient.get(ENDPOINTS.STORE_BY_ID(id));
-    return data;
+  getStoreById: async (id: string): Promise<import("@/types/store").Store> => {
+    const { data } = await apiClient.get<{
+      data: import("@/types/store").Store;
+    }>(ENDPOINTS.STORE_BY_ID(id));
+    return data.data;
   },
 };

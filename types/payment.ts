@@ -94,6 +94,8 @@ export interface PaymentListParams {
   dateTo?: string; // YYYY-MM-DD
   minAmount?: number;
   maxAmount?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 // Loan summary for select options

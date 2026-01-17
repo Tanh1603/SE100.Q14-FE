@@ -3,6 +3,7 @@ export const ENDPOINTS = {
   LOANS: "/loans",
   LOAN_BY_ID: (id: string) => `/loans/${id}`,
   LOAN_SIMULATIONS: "/loan-simulations",
+  LOAN_TYPES: "/loan-types",
 
   // Payments
   PAYMENTS: "/payments",
@@ -16,9 +17,11 @@ export const ENDPOINTS = {
   // Assets
   ASSETS: "/assets",
   ASSET_TYPES: "/asset-types",
+  COLLATERAL_TYPES: "/collateral-types",
   COLLATERAL_ASSETS: "/collateral-assets",
   ASSET_EVALUATIONS: "/asset-evaluations",
-  REPAYMENT_SCHEDULES_OVERDUE: "/repayment-schedules/overdue",
+  LIQUIDATIONS: "/liquidations",
+  REPAYMENT_SCHEDULES_OVERDUE: "/loans/overdue",
   COMMUNICATIONS_LOG: "/communications/log",
   COMMUNICATIONS_PROMISES_TO_PAY: "/communications/promises-to-pay",
   COMMUNICATIONS_HISTORY: (loanId: string) =>
@@ -27,6 +30,9 @@ export const ENDPOINTS = {
   // Stores
   STORES: "/stores",
   STORE_BY_ID: (id: string) => `/stores/${id}`,
+
+  // Employees
+  EMPLOYEES: "/employees",
 
   // Reports
   REPORTS: {

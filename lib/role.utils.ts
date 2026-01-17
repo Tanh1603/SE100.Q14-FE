@@ -21,5 +21,5 @@ export async function getRole(): Promise<Role | null> {
   console.log("[getRole] Role:", role);
 
   // Return role or default to "manager" for authenticated users
-  return role || "manager";
+  return role || Role.MANAGER;
 }

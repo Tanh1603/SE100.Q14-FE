@@ -11,10 +11,14 @@ export const mockBranches: Branch[] = [
     status: BranchStatus.ACTIVE,
     province: {
       id: "HN",
+      code: "HN",
+      name: "Hà Nội",
       label: "Hà Nội",
     },
     ward: {
       id: "DVH",
+      code: "DVH",
+      name: "Phường Dịch Vọng Hậu",
       label: "Phường Dịch Vọng Hậu",
     },
     createdAt: new Date().toISOString().split("T")[0],
@@ -27,10 +31,14 @@ export const mockBranches: Branch[] = [
     status: BranchStatus.CLOSE,
     province: {
       id: "HN",
+      code: "HN",
+      name: "Hà Nội",
       label: "Hà Nội",
     },
     ward: {
       id: "DVH",
+      code: "DVH",
+      name: "Phường Dịch Vọng Hậu",
       label: "Phường Dịch Vọng Hậu",
     },
     createdAt: new Date().toISOString().split("T")[0],

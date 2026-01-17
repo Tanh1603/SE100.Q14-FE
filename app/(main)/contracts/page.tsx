@@ -3,7 +3,6 @@
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@radix-ui/react-dropdown-menu";
 import {
   Edit,
   FileSignature,
@@ -37,6 +36,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
+import { DateRange } from "react-day-picker";
+import {
+  format,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  startOfYear,
+  endOfYear,
+} from "date-fns";
+
 const ContractPage = () => {
   const [selectedContract, setSelectedContract] = useState<
     (loan & { contractNumber?: string; endDate?: string }) | null
@@ -57,6 +70,8 @@ const ContractPage = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [storeFilter, setStoreFilter] = useState("ALL");
   const [customerFilter, setCustomerFilter] = useState("ALL");
+  const [periodFilter, setPeriodFilter] = useState("ALL");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -74,7 +89,9 @@ const ContractPage = () => {
         searchTerm,
         statusFilter,
         storeFilter,
-        customerFilter
+        customerFilter,
+        dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+        dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
       );
       setLoans(response.data);
       setTotalItems(response.meta.totalItems);
@@ -85,7 +102,15 @@ const ContractPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, searchTerm, statusFilter, storeFilter, customerFilter]);
+  }, [
+    page,
+    limit,
+    searchTerm,
+    statusFilter,
+    storeFilter,
+    customerFilter,
+    dateRange,
+  ]);
 
   const fetchStores = async () => {
     try {
@@ -120,7 +145,9 @@ const ContractPage = () => {
           searchTerm, // This will use the CURRENT searchTerm when filters change
           statusFilter,
           storeFilter,
-          customerFilter
+          customerFilter,
+          dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+          dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
         );
         setLoans(response.data);
         setTotalItems(response.meta.totalItems);
@@ -134,7 +161,7 @@ const ContractPage = () => {
     };
     triggerFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, storeFilter, customerFilter]); // Specifically NOT including searchTerm here
+  }, [page, statusFilter, storeFilter, customerFilter, dateRange]); // Specifically NOT including searchTerm here
 
   const handleSearch = () => {
     setPage(1); // Reset to first page on search
@@ -165,17 +192,71 @@ const ContractPage = () => {
       }
     };
 
+    const handleApproveLoan = async (e: CustomEvent) => {
+      if (e.detail?.loanId) {
+        if (
+          !confirm(
+            `Bạn có chắc chắn muốn duyệt khoản vay ${e.detail.loanCode}?`,
+          )
+        )
+          return;
+        try {
+          await LoanService.approveLoan(e.detail.loanId, "Approved by Manager");
+          alert("Đã duyệt khoản vay thành công!");
+          fetchLoans(); // Refresh the list
+        } catch (error) {
+          console.error("Failed to approve loan:", error);
+          alert("Lỗi khi duyệt khoản vay");
+        }
+      }
+    };
+
+    const handleRejectLoan = async (e: CustomEvent) => {
+      if (e.detail?.loanId) {
+        const reason = prompt("Nhập lý do từ chối:");
+        if (reason === null) return; // Cancelled
+
+        try {
+          await LoanService.rejectLoan(
+            e.detail.loanId,
+            reason || "Rejected by Manager",
+          );
+          alert("Đã từ chối khoản vay!");
+          fetchLoans(); // Refresh the list
+        } catch (error) {
+          console.error("Failed to reject loan:", error);
+          alert("Lỗi khi từ chối khoản vay");
+        }
+      }
+    };
+
     window.addEventListener("quick-pay", handleQuickPay as EventListener);
     window.addEventListener(
       "debt-reminder",
-      handleDebtReminder as EventListener
+      handleDebtReminder as EventListener,
+    );
+    window.addEventListener(
+      "approve-loan",
+      handleApproveLoan as unknown as EventListener,
+    );
+    window.addEventListener(
+      "reject-loan",
+      handleRejectLoan as unknown as EventListener,
     );
 
     return () => {
       window.removeEventListener("quick-pay", handleQuickPay as EventListener);
       window.removeEventListener(
         "debt-reminder",
-        handleDebtReminder as EventListener
+        handleDebtReminder as EventListener,
+      );
+      window.removeEventListener(
+        "approve-loan",
+        handleApproveLoan as unknown as EventListener,
+      );
+      window.removeEventListener(
+        "reject-loan",
+        handleRejectLoan as unknown as EventListener,
       );
     };
   }, [loans]);
@@ -255,6 +336,64 @@ const ContractPage = () => {
                       {store.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Period Filter */}
+            <div className="lg:col-span-3">
+              <Select
+                value={periodFilter}
+                onValueChange={(value) => {
+                  setPeriodFilter(value);
+                  const now = new Date();
+                  switch (value) {
+                    case "TODAY":
+                      setDateRange({
+                        from: startOfDay(now),
+                        to: endOfDay(now),
+                      });
+                      break;
+                    case "THIS_WEEK":
+                      setDateRange({
+                        from: startOfWeek(now, { weekStartsOn: 1 }),
+                        to: endOfWeek(now, { weekStartsOn: 1 }),
+                      });
+                      break;
+                    case "THIS_MONTH":
+                      setDateRange({
+                        from: startOfMonth(now),
+                        to: endOfMonth(now),
+                      });
+                      break;
+                    case "LAST_MONTH":
+                      const lastMonth = subMonths(now, 1);
+                      setDateRange({
+                        from: startOfMonth(lastMonth),
+                        to: endOfMonth(lastMonth),
+                      });
+                      break;
+                    case "THIS_YEAR":
+                      setDateRange({
+                        from: startOfYear(now),
+                        to: endOfYear(now),
+                      });
+                      break;
+                    default:
+                      setDateRange(undefined);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full rounded-full border-gray-200 bg-white px-4">
+                  <SelectValue placeholder="Chọn thời gian" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả thời gian</SelectItem>
+                  <SelectItem value="TODAY">Hôm nay</SelectItem>
+                  <SelectItem value="THIS_WEEK">Tuần này</SelectItem>
+                  <SelectItem value="THIS_MONTH">Tháng này</SelectItem>
+                  <SelectItem value="LAST_MONTH">Tháng trước</SelectItem>
+                  <SelectItem value="THIS_YEAR">Năm nay</SelectItem>
                 </SelectContent>
               </Select>
             </div>

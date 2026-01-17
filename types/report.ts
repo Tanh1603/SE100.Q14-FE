@@ -74,6 +74,28 @@ export interface DailyLogResponse {
 }
 
 // --- Quarterly Report (DK13) ---
+export interface AssetBreakdownItem {
+  category: string;
+  receivedCount: number;
+  receivedValue: number;
+  releasedCount: number;
+  releasedValue: number;
+  liquidatedCount: number;
+  liquidatedValue: number;
+  inStockCount: number;
+  inStockValue: number;
+}
+
+export interface EmployeeReport {
+  total: number;
+  male: number;
+  female: number;
+}
+
+export interface SecurityPersonnelReport {
+  count: number;
+}
+
 export interface QuarterlyStatistics {
   totalLoansIssued: number;
   totalLoanAmount: number;
@@ -90,6 +112,9 @@ export interface QuarterlyStatistics {
     lateFee: number;
     liquidationProfit: number;
   };
+  assetBreakdown: AssetBreakdownItem[];
+  employees: EmployeeReport;
+  security: SecurityPersonnelReport;
 }
 
 export interface QuarterlyCompliance {

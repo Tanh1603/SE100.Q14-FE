@@ -12,7 +12,7 @@ export function BranchContent({ userId }: BranchContentProps) {
   if (userStaffs.length === 0) return <div>Không có chi nhánh nào</div>;
 
   const userBranches = mockBranches.filter((b) =>
-    userStaffs.some((s) => s.branch.id === b.id)
+    userStaffs.some((s) => s.storeId === b.id),
   );
 
   return (

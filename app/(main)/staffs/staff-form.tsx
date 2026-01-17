@@ -29,7 +29,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useBranch } from "@/hooks/use-branch";
 import { useCreateStaff } from "@/hooks/use-staff";
-import { ROLE_OPTIONS } from "@/types/constant";
+import { getUserRole } from "@/lib/role.helper";
+import { Role, ROLE_OPTIONS } from "@/types/constant";
 import { CreateStaff, CreateStaffSchema } from "@/types/staff";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -102,8 +103,7 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
   };
 
   const { user, isLoaded } = useUser();
-  const isManager =
-    (user?.publicMetadata?.role as string).toUpperCase() === "MANAGER";
+  const isManager = getUserRole(user?.publicMetadata) === Role.MANAGER;
 
   useEffect(() => {
     if (

@@ -66,7 +66,11 @@ export function PaymentDialog({
         .then((schedule) => {
           let totalPayoff = 0;
           let totalPrincipal = 0;
-          let nextPeriodItem = null;
+          let nextPeriodItem: {
+            amount: number;
+            period: number;
+            dueDate: string;
+          } | null = null;
 
           schedule.forEach((item) => {
             const paid =
@@ -101,7 +105,7 @@ export function PaymentDialog({
           });
         })
         .catch((err) =>
-          console.error("Failed to fetch schedule for suggestion", err)
+          console.error("Failed to fetch schedule for suggestion", err),
         )
         .finally(() => setScheduleLoading(false));
     }

@@ -21,15 +21,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useRef } from "react";
 import { RoleGate } from "@/components/features/role/role-gate";
 import { ReportService } from "@/lib/report.service";
-import { QuarterlyReportResponse, DK13Row } from "@/types/report";
+import {
+  QuarterlyReportResponse,
+  DK13Row,
+  AssetBreakdownItem,
+} from "@/types/report";
 import { StoreSelector } from "./store-selector";
 import { QuarterlyReportPrint } from "@/components/templates/reports/quarterly-report-print";
+import { Role } from "@/types/constant";
 
 const QuarterlyReportTab = () => {
   const [quarter, setQuarter] = useState("1");
   const [year, setYear] = useState("2026");
   const [storeId, setStoreId] = useState<string>("");
+
   const [data, setData] = useState<QuarterlyReportResponse | null>(null);
+  const [reportRows, setReportRows] = useState<DK13Row[]>([]);
+  const [employeeCount, setEmployeeCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   // Ref for printing
@@ -42,12 +50,37 @@ const QuarterlyReportTab = () => {
         const res = await ReportService.getQuarterlyReport(
           parseInt(year),
           parseInt(quarter),
-          storeId || undefined
+          storeId || undefined,
         );
         setData(res);
+
+        // Map Asset Breakdown from API response
+        if (res.statistics.assetBreakdown) {
+          const mappedRows: DK13Row[] = res.statistics.assetBreakdown.map(
+            (item: AssetBreakdownItem, index: number) => ({
+              id: index.toString(),
+              category: item.category,
+              totalReceived: item.receivedCount,
+              totalReceivedValue: item.receivedValue,
+              totalRedeemed: item.releasedCount,
+              totalRedeemedValue: item.releasedValue,
+              totalLiquidated: item.liquidatedCount,
+              totalLiquidatedValue: item.liquidatedValue,
+              currentInventory: item.inStockCount,
+              currentInventoryValue: item.inStockValue,
+            }),
+          );
+          setReportRows(mappedRows);
+        } else {
+          setReportRows([]);
+        }
+
+        // Set Employee Count
+        if (res.statistics.employees) {
+          setEmployeeCount(res.statistics.employees.total);
+        }
       } catch (error) {
-        console.error("Failed to fetch quarterly report", error);
-        setData(null);
+        console.error("Failed to fetch quarterly report data", error);
       } finally {
         setLoading(false);
       }
@@ -66,43 +99,21 @@ const QuarterlyReportTab = () => {
       currency: "VND",
     }).format(val);
 
-  // Transform real API statistics into the Table Row format
-  // Since API doesn't provide category breakdown, we create a single "Summary" row.
-  const tableRows: DK13Row[] = data && data.statistics
-    ? [
-        {
-          id: "summary",
-          category: "Tổng hợp chung",
-          // Received
-          totalReceived: data.statistics.totalCollateralsReceived || 0,
-          totalReceivedValue: data.statistics.totalLoanAmount || 0, // Approx: Total Loan Amount Issued
-          // Redeemed (Closed/Released)
-          totalRedeemed: data.statistics.totalCollateralsReleased || 0,
-          totalRedeemedValue: 0, // Not provided by API yet
-          // Liquidated
-          totalLiquidated: data.statistics.totalLiquidations || 0,
-          totalLiquidatedValue: 0, // Not provided by API yet
-          // Inventory (Active)
-          currentInventory: data.statistics.totalLoansActive || 0,
-          currentInventoryValue: 0, // Not provided by API yet
-        },
-      ]
-    : [];
-
   return (
     <div className="space-y-6">
       <div className="hidden print:block absolute top-0 left-0 w-full z-[9999]">
         <QuarterlyReportPrint
           ref={printRef}
           data={data}
-          rows={tableRows}
+          rows={reportRows}
           quarter={quarter}
           year={year}
+          storeName="Cửa hàng cầm đồ" // Placeholder until StoreService.getById is integrated
         />
       </div>
 
       <RoleGate
-        allowedRoles={["admin", "manager", "store_owner"]}
+        allowedRoles={[Role.ADMIN, Role.MANAGER]}
         fallback={
           <div className="flex flex-col items-center justify-center p-10 text-center bg-gray-50 rounded-lg border border-dashed text-gray-400">
             <ShieldAlert className="w-10 h-10 mb-2" />
@@ -162,7 +173,7 @@ const QuarterlyReportTab = () => {
           </div>
         ) : (
           <div className="print:hidden">
-            {/* Summary Cards */}
+            {/* Summary Cards - Using Real Data if available */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
@@ -172,7 +183,7 @@ const QuarterlyReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {data?.statistics?.totalCollateralsReceived || 0}
+                    {data?.statistics.totalCollateralsReceived || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">Hợp đồng mới</p>
                 </CardContent>
@@ -185,7 +196,7 @@ const QuarterlyReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {data?.statistics?.totalLiquidations || 0}
+                    {data?.statistics.totalLiquidations || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Tài sản quá hạn
@@ -200,7 +211,7 @@ const QuarterlyReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {data?.statistics?.totalLoansActive || 0}
+                    {data?.statistics.totalLoansActive || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">Đang bảo quản</p>
                 </CardContent>
@@ -213,25 +224,37 @@ const QuarterlyReportTab = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg font-bold text-green-600">
-                    {formatCurrency(data?.statistics?.totalLoanAmount || 0)}
+                    {formatCurrency(data?.statistics.totalLoanAmount || 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">VND</p>
                 </CardContent>
               </Card>
             </div>
 
+            <div className="mt-4 flex gap-4">
+              <Card className="flex-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Nhân sự
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{employeeCount}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Tổng số nhân viên
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Main Report Table (ĐK13 Format) */}
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden text-sm mt-6">
-              <div className="p-4 border-b bg-gray-50 text-center relative">
+              <div className="p-4 border-b bg-gray-50 text-center">
                 <h3 className="font-bold text-lg uppercase text-gray-800">
                   Báo cáo tình hình kinh doanh {quarter}/{year}
                 </h3>
                 <p className="text-xs italic text-gray-500">
                   (Ban hành kèm theo Thông tư số 54/2012/TT-BCA)
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  * Dữ liệu được tổng hợp tự động từ hệ thống. Chi tiết phân
-                  loại từng mặt hàng vui lòng xem tại sổ quản lý chi tiết.
                 </p>
               </div>
 
@@ -305,14 +328,17 @@ const QuarterlyReportTab = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!data ? (
+                    {reportRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8">
-                          Không có dữ liệu
+                        <TableCell
+                          colSpan={10}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          Không có dữ liệu phân loại
                         </TableCell>
                       </TableRow>
                     ) : (
-                      tableRows.map((item, index) => (
+                      reportRows.map((item, index) => (
                         <TableRow key={item.id}>
                           <TableCell className="text-center border-r">
                             {index + 1}
@@ -332,27 +358,21 @@ const QuarterlyReportTab = () => {
                             {item.totalRedeemed}
                           </TableCell>
                           <TableCell className="text-right border-r">
-                            {item.totalRedeemedValue
-                              ? formatCurrency(item.totalRedeemedValue)
-                              : "-"}
+                            {formatCurrency(item.totalRedeemedValue)}
                           </TableCell>
 
                           <TableCell className="text-center border-r">
                             {item.totalLiquidated}
                           </TableCell>
                           <TableCell className="text-right border-r">
-                            {item.totalLiquidatedValue
-                              ? formatCurrency(item.totalLiquidatedValue)
-                              : "-"}
+                            {formatCurrency(item.totalLiquidatedValue)}
                           </TableCell>
 
                           <TableCell className="text-center border-r">
                             {item.currentInventory}
                           </TableCell>
                           <TableCell className="text-right border-r">
-                            {item.currentInventoryValue
-                              ? formatCurrency(item.currentInventoryValue)
-                              : "-"}
+                            {formatCurrency(item.currentInventoryValue)}
                           </TableCell>
                         </TableRow>
                       ))

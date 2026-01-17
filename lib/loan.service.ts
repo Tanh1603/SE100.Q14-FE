@@ -23,7 +23,9 @@ export const LoanService = {
     search?: string,
     status?: string,
     storeId?: string,
-    customerId?: string
+    customerId?: string,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<LoanListResponse> => {
     // Construct query parameters
     const params: any = {
@@ -34,12 +36,14 @@ export const LoanService = {
     if (status && status !== "ALL") params.status = status;
     if (storeId && storeId !== "ALL") params.storeId = storeId;
     if (customerId && customerId !== "ALL") params.customerId = customerId;
+    if (fromDate) params.startDate = fromDate;
+    if (toDate) params.endDate = toDate;
 
     const response = await apiClient.get<PagedLoanResponseDTO>(
       ENDPOINTS.LOANS,
       {
         params,
-      }
+      },
     );
 
     const dto = response.data;
@@ -47,7 +51,7 @@ export const LoanService = {
     // Workaround for missing customer names in API response
     // Fetch customer details for each loan (optimizing for unique IDs)
     const uniqueCustomerIds = Array.from(
-      new Set(dto.data.map((l) => l.customerId))
+      new Set(dto.data.map((l) => l.customerId)),
     );
 
     const customerMap = new Map<string, { name: string; phone: string }>();
@@ -63,7 +67,7 @@ export const LoanService = {
         } catch (e) {
           console.error(`Failed to fetch customer ${id}`, e);
         }
-      })
+      }),
     );
 
     // Merge customer info into DTOs
@@ -88,7 +92,7 @@ export const LoanService = {
   },
 
   getLoanById: async (
-    id: string
+    id: string,
   ): Promise<import("@/types/dto/loan.dto").LoanDetailDTO> => {
     const response = await apiClient.get<{
       data: import("@/types/dto/loan.dto").LoanDetailDTO;
@@ -97,7 +101,7 @@ export const LoanService = {
   },
 
   getRepaymentSchedule: async (
-    loanId: string
+    loanId: string,
   ): Promise<
     import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[]
   > => {
@@ -123,16 +127,21 @@ export const LoanService = {
     repaymentMethod: string;
     loanTypeId: number;
     collateralIds: string[];
+    storeId: string;
     notes?: string;
   }): Promise<any> => {
-    const response = await apiClient.post(ENDPOINTS.LOANS, data);
-    return response.data;
+    console.log(
+      "LoanService.createLoan - Sending payload:",
+      JSON.stringify(data, null, 2),
+    );
+    const response = await apiClient.post<{ data: any }>(ENDPOINTS.LOANS, data);
+    return response.data.data;
   },
 
   updateStatus: async (
     id: string,
     status: "ACTIVE" | "REJECTED",
-    note?: string
+    note?: string,
   ): Promise<any> => {
     const response = await apiClient.patch(`${ENDPOINTS.LOANS}/${id}/status`, {
       status,

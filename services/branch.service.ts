@@ -1,6 +1,6 @@
 import { Branch } from "@/types/branch";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export const branchKeys = {
   all: ["branchs"] as const,

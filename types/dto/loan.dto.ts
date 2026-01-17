@@ -1,6 +1,7 @@
 export interface LoanDTO {
   id: string;
   customerId: string;
+  storeId?: string;
   storeName: string;
   loanCode?: string; // Added from OpenAPI
   loanAmount: number;

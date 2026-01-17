@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { InlineCustomerForm } from "@/components/features/customer/inline-customer-form";
-import { mockAssetType } from "@/mock-data/asset";
-import { mockwarehouses } from "@/mock-data/warehouse";
+import { StoreService } from "@/lib/store.service";
+import { Store } from "@/types/store";
 import { Customer } from "@/types/customer";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   User,
   Trash2,
+  Edit,
   Box,
   Calculator,
   Loader2,
@@ -62,9 +63,9 @@ const assetSchema = z.object({
   warehouseId: z.string().min(1, "Vui lòng chọn kho"),
   assetTypeId: z.string().min(1, "Vui lòng chọn loại tài sản"),
   fieldValues: z.record(z.string(), z.string()),
-  image: z.any().optional(),
-  imageFile: z.any().optional(), // Store file object for upload
-  valuation: z.string().optional(),
+  images: z.array(z.string()).default([]),
+  imageFiles: z.array(z.instanceof(File)).default([]),
+  valuation: z.string().min(1, "Định giá là bắt buộc"), // Removed optional()
 });
 
 const formSchema = z.object({
@@ -72,9 +73,7 @@ const formSchema = z.object({
   loanDate: z.string(),
   totalLoan: z.number().min(0),
   loanTypeId: z.string().min(1, "Vui lòng chọn gói vay"),
-  repaymentMethod: z
-    .nativeEnum(RepaymentMethod)
-    .default(RepaymentMethod.INTEREST_ONLY),
+  repaymentMethod: z.nativeEnum(RepaymentMethod),
   storeId: z.string().min(1, "Vui lòng chọn chi nhánh"),
   assets: z.array(assetSchema).min(1, "Cần ít nhất một tài sản"),
   numberPayment: z.number().optional(), // Used for display mainly, derived from loan type
@@ -86,7 +85,7 @@ type AssetFormValue = z.infer<typeof assetSchema>;
 export default function CreateContractPage() {
   const router = useRouter();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null
+    null,
   );
   const [isAssetPanelOpen, setIsAssetPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,22 +94,27 @@ export default function CreateContractPage() {
 
   // New State for Data
   const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [configurations, setConfigurations] = useState<Record<string, string>>(
-    {}
+    {},
   );
   const [selectedLoanType, setSelectedLoanType] = useState<LoanType | null>(
-    null
+    null,
+  );
+  const [editingAssetIndex, setEditingAssetIndex] = useState<number | null>(
+    null,
   );
 
   const form = useForm<ContractFormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       customerId: "",
       loanDate: new Date().toISOString().split("T")[0],
       totalLoan: 0,
       loanTypeId: "",
       repaymentMethod: RepaymentMethod.INTEREST_ONLY,
-      storeId: mockwarehouses[0]?.id || "", // Default store
+      storeId: "", // Will be set after stores are fetched
       assets: [],
     },
   });
@@ -122,15 +126,22 @@ export default function CreateContractPage() {
   // Fetch Data on Mount
   useEffect(() => {
     const fetchData = async () => {
-      const [types, configs] = await Promise.all([
+      const [types, configs, storesRes] = await Promise.all([
         LoanTypeService.getAll(),
         ConfigurationService.getConfigurations("RATES"),
+        StoreService.getStores({ limit: 100 }),
       ]);
       setLoanTypes(types);
       setConfigurations(configs);
+      const storesList = storesRes.data || [];
+      setStores(storesList);
+      // Set default store if available
+      if (storesList.length > 0) {
+        setValue("storeId", storesList[0].id);
+      }
     };
     fetchData();
-  }, []);
+  }, [setValue]);
 
   // Update selected loan type object when ID changes
   useEffect(() => {
@@ -144,10 +155,9 @@ export default function CreateContractPage() {
   }, [currentLoanTypeId, loanTypes, setValue]);
 
   // Calculate Total Custody Fee Rate from Assets
-  const totalCustodyFeeRate = assets.reduce((sum, asset) => {
-    const type = mockAssetType.find((t) => t.id === asset.assetTypeId);
-    return sum + Number(type?.custodyFeeRateMonthly || 0);
-  }, 0);
+  // Note: In a full implementation, this would use collateral types from API
+  // For now, we set it to 0 since the fee info is in collateral types
+  const totalCustodyFeeRate = 0;
 
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -164,9 +174,25 @@ export default function CreateContractPage() {
       ...newAsset,
       id: newAsset.id || Math.random().toString(),
       fieldValues: newAsset.fieldValues || {},
-      imageFile: newAsset.imageFile,
+      images: newAsset.images,
+      imageFiles: newAsset.imageFiles,
+      valuation: newAsset.valuation || "0",
     };
-    setValue("assets", [...assets, asset]);
+
+    // If editing, replace the asset at the editing index
+    if (editingAssetIndex !== null) {
+      const newAssets = [...assets];
+      newAssets[editingAssetIndex] = asset;
+      setValue("assets", newAssets);
+      setEditingAssetIndex(null);
+    } else {
+      setValue("assets", [...assets, asset]);
+    }
+  };
+
+  const handleEditAsset = (index: number) => {
+    setEditingAssetIndex(index);
+    setIsAssetPanelOpen(true);
   };
 
   const handleRemoveAsset = (index: number) => {
@@ -211,6 +237,13 @@ export default function CreateContractPage() {
       return;
     }
 
+    if (!data.storeId) {
+      toast.error("Vui lòng chọn chi nhánh");
+      return;
+    }
+
+    console.log("Submitting with storeId:", data.storeId); // Debug log
+
     setIsSubmitting(true);
     try {
       let customerId = selectedCustomer.id;
@@ -230,40 +263,29 @@ export default function CreateContractPage() {
             ownerName: selectedCustomer.fullName,
             collateralInfo: asset.fieldValues,
             status: "PROPOSED",
+            storageLocation: asset.warehouseId, // Store ID as storage location
+            receivedDate: new Date().toISOString().split("T")[0],
+            appraisedValue: Number(asset.valuation), // Added appraisedValue
           },
-          asset.imageFile ? [asset.imageFile] : undefined
+          asset.imageFiles && asset.imageFiles.length > 0
+            ? asset.imageFiles
+            : undefined,
         );
         collateralIds.push(res.id);
       }
 
       // 3. Create Loan
-      const createRes = await LoanService.createLoan({
+      await LoanService.createLoan({
         customerId: customerId,
         loanAmount: data.totalLoan,
         repaymentMethod: data.repaymentMethod,
         loanTypeId: Number(data.loanTypeId),
         collateralIds: collateralIds,
-        notes: "Created via full workflow",
+        storeId: data.storeId, // Required by backend
+        notes: "Hợp đồng mới được lập từ màn hình tạo",
       });
 
-      const loanId = createRes.loan.id;
-
-      // 4. Approve
-      await LoanService.approveLoan(loanId, "Auto-approved");
-
-      // 5. Disburse
-      await DisbursementService.create(
-        {
-          loanId: loanId,
-          storeId: data.storeId,
-          amount: data.totalLoan,
-          disbursementMethod: "CASH",
-          recipientName: selectedCustomer.fullName,
-        },
-        generateIdempotencyKey()
-      );
-
-      toast.success("Hợp đồng đã được tạo và giải ngân thành công!");
+      toast.success("Hợp đồng đã được lập và đang chờ duyệt!");
       router.push("/contracts");
     } catch (error: any) {
       console.error(error);
@@ -380,7 +402,7 @@ export default function CreateContractPage() {
                           <FormLabel>Chi nhánh giải ngân</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -388,9 +410,9 @@ export default function CreateContractPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {mockwarehouses.map((w) => (
-                                <SelectItem key={w.id} value={w.id}>
-                                  {w.name}
+                              {stores.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -399,29 +421,29 @@ export default function CreateContractPage() {
                       )}
                     />
 
-                      {/* Row 2: Loan Product (Type) & Duration (Read-only) */}
-                      <FormField
-                        control={control}
-                        name="loanTypeId"
-                        render={({ field }) => (
-                          <FormItem className="col-span-1">
-                            <FormLabel>Gói sản phẩm vay</FormLabel>
-                            <FormControl>
-                              <SearchableSelect
-                                options={loanTypes.map((type) => ({
-                                  value: type.id.toString(),
-                                  label: type.name,
-                                  detail: `${type.interestRateMonthly}%/tháng - ${type.durationMonths} tháng`,
-                                }))}
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                placeholder="Tìm kiếm gói vay..."
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    {/* Row 2: Loan Product (Type) & Duration (Read-only) */}
+                    <FormField
+                      control={control}
+                      name="loanTypeId"
+                      render={({ field }) => (
+                        <FormItem className="col-span-1">
+                          <FormLabel>Gói sản phẩm vay</FormLabel>
+                          <FormControl>
+                            <SearchableSelect
+                              options={loanTypes.map((type) => ({
+                                value: type.id.toString(),
+                                label: type.name,
+                                detail: `${type.interestRateMonthly}%/tháng - ${type.durationMonths} tháng`,
+                              }))}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Tìm kiếm gói vay..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div className="space-y-2">
                       <Label className="text-gray-500">Thời hạn vay</Label>
@@ -618,32 +640,32 @@ export default function CreateContractPage() {
                                         <td className="p-2">
                                           {item.dueDate
                                             ? new Date(
-                                                item.dueDate
+                                                item.dueDate,
                                               ).toLocaleDateString("vi-VN")
                                             : "-"}
                                         </td>
                                         <td className="p-2 text-right text-gray-600">
                                           {new Intl.NumberFormat(
-                                            "vi-VN"
+                                            "vi-VN",
                                           ).format(item.principalAmount)}
                                         </td>
                                         <td className="p-2 text-right text-gray-600">
                                           {new Intl.NumberFormat(
-                                            "vi-VN"
+                                            "vi-VN",
                                           ).format(item.interestAmount)}
                                         </td>
                                         <td className="p-2 text-right text-gray-600">
                                           {new Intl.NumberFormat(
-                                            "vi-VN"
+                                            "vi-VN",
                                           ).format(item.feeAmount)}
                                         </td>
                                         <td className="p-2 text-right font-bold text-gray-900">
                                           {new Intl.NumberFormat(
-                                            "vi-VN"
+                                            "vi-VN",
                                           ).format(item.totalAmount)}
                                         </td>
                                       </tr>
-                                    )
+                                    ),
                                   )}
                                 </tbody>
                               </table>
@@ -665,8 +687,8 @@ export default function CreateContractPage() {
                         }).format(
                           assets.reduce(
                             (sum, a) => sum + (Number(a.valuation) || 0),
-                            0
-                          )
+                            0,
+                          ),
                         )}
                       </span>
                     </div>
@@ -681,7 +703,7 @@ export default function CreateContractPage() {
                             (watch("totalLoan") /
                               (assets.reduce(
                                 (sum, a) => sum + (Number(a.valuation) || 0),
-                                0
+                                0,
                               ) || 1)) *
                               100 >
                             80
@@ -693,7 +715,7 @@ export default function CreateContractPage() {
                             (watch("totalLoan") /
                               (assets.reduce(
                                 (sum, a) => sum + (Number(a.valuation) || 0),
-                                0
+                                0,
                               ) || 1)) *
                             100
                           ).toFixed(1)}
@@ -705,7 +727,7 @@ export default function CreateContractPage() {
                       (watch("totalLoan") /
                         (assets.reduce(
                           (sum, a) => sum + (Number(a.valuation) || 0),
-                          0
+                          0,
                         ) || 1)) *
                         100 >
                         80 && (
@@ -743,9 +765,9 @@ export default function CreateContractPage() {
                           className="flex items-start gap-4 p-4 border rounded-xl bg-gray-50/50 hover:bg-white hover:shadow-md transition-all group relative"
                         >
                           <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                            {asset.image ? (
+                            {asset.images && asset.images.length > 0 ? (
                               <img
-                                src={asset.image}
+                                src={asset.images[0]}
                                 alt="asset"
                                 className="w-full h-full object-cover"
                               />
@@ -759,12 +781,13 @@ export default function CreateContractPage() {
                             </h4>
                             <div className="flex flex-wrap gap-2 mt-1">
                               <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">
-                                {
-                                  mockAssetType.find(
-                                    (t) => t.id === asset.assetTypeId
-                                  )?.name
-                                }
+                                Loại #{asset.assetTypeId}
                               </span>
+                              {asset.images && asset.images.length > 1 && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                  +{asset.images.length - 1} ảnh
+                                </span>
+                              )}
                               {asset.valuation && (
                                 <span className="text-xs font-medium text-green-600 border border-green-200 px-1.5 py-0.5 rounded bg-green-50">
                                   {new Intl.NumberFormat("vi-VN", {
@@ -775,14 +798,26 @@ export default function CreateContractPage() {
                               )}
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100"
-                            onClick={() => handleRemoveAsset(idx)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-blue-500"
+                              onClick={() => handleEditAsset(idx)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-gray-400 hover:text-red-500"
+                              onClick={() => handleRemoveAsset(idx)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))
                     ) : (
@@ -824,8 +859,16 @@ export default function CreateContractPage() {
       {/* Asset Side Panel */}
       <AssetCreationSidePanel
         open={isAssetPanelOpen}
-        onOpenChange={setIsAssetPanelOpen}
+        onOpenChange={(open) => {
+          setIsAssetPanelOpen(open);
+          if (!open) {
+            setEditingAssetIndex(null);
+          }
+        }}
         onAddAsset={handleAddAsset}
+        initialAsset={
+          editingAssetIndex !== null ? assets[editingAssetIndex] : null
+        }
       />
     </div>
   );

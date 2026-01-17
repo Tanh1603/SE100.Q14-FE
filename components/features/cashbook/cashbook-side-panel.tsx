@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { Role } from "@/types/constant";
+import { getUserRole } from "@/lib/role.helper";
 
 interface CashbookSidePanelProps {
   open: boolean;
@@ -66,8 +67,8 @@ export function CashbookSidePanel({
   const [formData, setFormData] = useState<Payment>(emptyPayment);
   const [dateStr, setDateStr] = useState<string>("");
   const { user } = useUser();
-  const role = (user?.publicMetadata?.role as Role) || "staff";
-  const isAdmin = role === "admin";
+  const role = getUserRole(user?.publicMetadata);
+  const isAdmin = role === Role.ADMIN;
 
   useEffect(() => {
     setMode(initialMode);
@@ -89,7 +90,8 @@ export function CashbookSidePanel({
   const handleSave = () => {
     // Validation: Require notes for Other Income/Expense
     if (
-      (formData.paymentType === "OTHER_INCOME" || formData.paymentType === "OTHER_EXPENSE") &&
+      (formData.paymentType === "OTHER_INCOME" ||
+        formData.paymentType === "OTHER_EXPENSE") &&
       !formData.notes?.trim()
     ) {
       alert("Vui lòng nhập nội dung/ghi chú cho loại giao dịch này.");
@@ -111,7 +113,9 @@ export function CashbookSidePanel({
   };
 
   // Restrict types for manual creation
-  const isOtherType = formData.paymentType === "OTHER_INCOME" || formData.paymentType === "OTHER_EXPENSE";
+  const isOtherType =
+    formData.paymentType === "OTHER_INCOME" ||
+    formData.paymentType === "OTHER_EXPENSE";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,8 +133,8 @@ export function CashbookSidePanel({
             {mode === "create"
               ? "Tạo phiếu thu/chi mới"
               : mode === "edit"
-              ? "Chỉnh sửa phiếu"
-              : "Chi tiết giao dịch"}
+                ? "Chỉnh sửa phiếu"
+                : "Chi tiết giao dịch"}
           </DialogTitle>
           <DialogDescription>
             {mode === "view"
@@ -149,7 +153,7 @@ export function CashbookSidePanel({
               <p
                 className={cn(
                   "text-3xl font-bold",
-                  getTransactionColor(formData.paymentType)
+                  getTransactionColor(formData.paymentType),
                 )}
               >
                 {new Intl.NumberFormat("vi-VN", {
@@ -272,7 +276,9 @@ export function CashbookSidePanel({
             <div className="grid gap-2">
               <Label>
                 Nội dung / Ghi chú
-                {isOtherType && !isView && <span className="text-red-500 ml-1">*</span>}
+                {isOtherType && !isView && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </Label>
               <Textarea
                 disabled={isView}
@@ -280,7 +286,11 @@ export function CashbookSidePanel({
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
-                placeholder={isOtherType ? "Bắt buộc nhập nội dung..." : "Nhập nội dung chi tiết..."}
+                placeholder={
+                  isOtherType
+                    ? "Bắt buộc nhập nội dung..."
+                    : "Nhập nội dung chi tiết..."
+                }
                 className="resize-none"
                 rows={3}
               />

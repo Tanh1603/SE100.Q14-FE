@@ -13,6 +13,7 @@ import {
   FileWarning,
   ClipboardCheck,
   Settings,
+  Tags,
 } from "lucide-react";
 
 export type MenuIcon =
@@ -27,7 +28,8 @@ export type MenuIcon =
   | "staff"
   | "branch"
   | "warehouse"
-  | "settings";
+  | "settings"
+  | "collateral-type";
 
 export interface MenuItem {
   title: string;
@@ -59,6 +61,7 @@ export const iconMap = {
   branch: Store,
   warehouse: Warehouse,
   settings: Settings,
+  "collateral-type": Tags,
 };
 
 export const menuConfig: MenuItem[] = [
@@ -67,7 +70,7 @@ export const menuConfig: MenuItem[] = [
     title: "Trang chủ",
     href: "/home",
     icon: "home",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
     isActive: true,
   },
 
@@ -76,21 +79,21 @@ export const menuConfig: MenuItem[] = [
     title: "Hợp đồng",
     href: "/contracts",
     icon: "contracts",
-    roles: ["admin", "manager", "staff"],
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
   },
 
   {
     title: "Duyệt vay",
     href: "/loans/management",
     icon: "loan-approval",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   {
     title: "Hợp đồng quá hạn",
     href: "/contracts/overdue",
     icon: "contracts-overdue",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   // Customers
@@ -98,7 +101,7 @@ export const menuConfig: MenuItem[] = [
     title: "Khách hàng",
     href: "/customers",
     icon: "customers",
-    roles: ["admin", "manager", "staff"],
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
   },
 
   // Assets
@@ -106,7 +109,7 @@ export const menuConfig: MenuItem[] = [
     title: "Tài sản cầm cố",
     href: "/assets",
     icon: "assets",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
   },
 
   // Cashbook
@@ -114,7 +117,7 @@ export const menuConfig: MenuItem[] = [
     title: "Thu - Chi",
     href: "/cashbooks",
     icon: "cashbook",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   // Reports
@@ -122,7 +125,7 @@ export const menuConfig: MenuItem[] = [
     title: "Báo cáo",
     href: "/reports",
     icon: "reports",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   // Staff Management
@@ -130,7 +133,7 @@ export const menuConfig: MenuItem[] = [
     title: "Quản lý nhân viên",
     href: "/staffs",
     icon: "staff",
-    roles: ["admin", "manager"],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   //
@@ -138,7 +141,7 @@ export const menuConfig: MenuItem[] = [
     title: "Quản lý kho",
     href: "/warehouses",
     icon: "warehouse",
-    roles: ["admin"],
+    roles: [Role.ADMIN],
   },
 
   //
@@ -146,7 +149,15 @@ export const menuConfig: MenuItem[] = [
     title: "Quản lý chi nhánh",
     href: "/branches",
     icon: "branch",
-    roles: ["admin"],
+    roles: [Role.ADMIN],
+  },
+  
+  // Collateral Types
+  {
+    title: "Loại tài sản",
+    href: "/settings/collateral-types",
+    icon: "collateral-type",
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   // Settings
@@ -154,6 +165,6 @@ export const menuConfig: MenuItem[] = [
     title: "Cài đặt hệ thống",
     href: "/settings/system",
     icon: "settings",
-    roles: ["admin"],
+    roles: [Role.ADMIN],
   },
 ];

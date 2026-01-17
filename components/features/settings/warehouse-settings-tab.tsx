@@ -35,8 +35,13 @@ export function WarehouseSettingsTab() {
       id: Math.random().toString(),
       name: newName,
       address: newAddress,
-      province: { id: "HN", label: "Hà Nội" }, // Default mock
-      ward: { id: "Unknown", label: "Chưa xác định" },
+      province: { id: "HN", code: "HN", name: "Hà Nội", label: "Hà Nội" }, // Default mock
+      ward: {
+        id: "Unknown",
+        code: "Unknown",
+        name: "Chưa xác định",
+        label: "Chưa xác định",
+      },
       status: WarehouseStatus.AVAILABLE,
       fee: 0,
     };

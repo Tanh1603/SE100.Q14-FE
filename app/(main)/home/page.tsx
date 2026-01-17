@@ -16,7 +16,6 @@ import {
   HandCoins,
   HomeIcon,
   Phone,
-  PiggyBank,
   Loader2,
   CalendarClock,
   CheckCircle2,
@@ -33,7 +32,7 @@ import {
 } from "@/lib/communication.service";
 import { PaymentServiceReal } from "@/lib/payment.service";
 import { LoanService } from "@/lib/loan.service";
-import { LogCommunicationDialog } from "@/components/features/communication/log-communication-dialog";
+import { DebtReminderDialog } from "@/components/features/payment/debt-reminder-dialog";
 
 // Helper function to format currency
 const formatCurrency = (amount: number): string => {
@@ -48,19 +47,15 @@ const HomePage = () => {
     todayTransactions: 0,
     activeLoansMonth: 0,
     collectedMonth: 0,
-    remainingFunds: 150000000,
   });
 
-  const [overdueItems, setOverdueItems] = useState<
-    RepaymentScheduleItemResponse[]
-  >([]);
+  const [overdueItems, setOverdueItems] = useState<any[]>([]);
   const [promisesToPay, setPromisesToPay] = useState<PromiseToPayItem[]>([]);
   const [isLoadingOverdue, setIsLoadingOverdue] = useState(true);
 
   // Dialog State
   const [openLogDialog, setOpenLogDialog] = useState(false);
-  const [selectedLogItem, setSelectedLogItem] =
-    useState<RepaymentScheduleItemResponse | null>(null);
+  const [selectedLogItem, setSelectedLogItem] = useState<any>(null);
 
   // Local state for "Called Today" visualization
   const [calledItems, setCalledItems] = useState<Set<string>>(new Set());
@@ -73,7 +68,7 @@ const HomePage = () => {
         const firstDayOfMonth = new Date(
           new Date().getFullYear(),
           new Date().getMonth(),
-          1
+          1,
         )
           .toISOString()
           .split("T")[0];
@@ -88,7 +83,7 @@ const HomePage = () => {
         // 2. Loans This Month
         const loansRes = await LoanService.getAllLoans(1, 100);
         const loansMonth = loansRes.data.filter(
-          (l) => l.loanDate >= firstDayOfMonth
+          (l) => l.loanDate >= firstDayOfMonth,
         ).length;
 
         // 3. Collected This Month
@@ -115,17 +110,20 @@ const HomePage = () => {
           minDaysOverdue: 1,
           limit: 5,
         });
-        const augmented = res.data.map((item) => ({
+        const augmented = res.data.map((item: any) => ({
           ...item,
+          id: item.loanId || item.id, // Ensure we have a primary ID for keys/dialogs
           customerName:
-            item.customerName || "Khách hàng " + item.loanId.substring(0, 4),
+            item.customer?.fullName || item.customerName || "Khách hàng",
           contractCode:
+            item.loanCode ||
             item.contractCode ||
-            "HD-" + item.loanId.substring(0, 4).toUpperCase(),
-          daysOverdue: Math.floor(
-            (Date.now() - new Date(item.dueDate).getTime()) /
-              (1000 * 60 * 60 * 24)
-          ),
+            item.contractNumber ||
+            "HD-ERROR",
+          totalAmount:
+            item.totalOverdueAmount || item.totalAmount || item.totalLoan || 0,
+          dueDate: item.earliestOverdueDate || item.dueDate,
+          daysOverdue: item.daysOverdue || 0,
         }));
         setOverdueItems(augmented);
       } catch (error) {
@@ -174,7 +172,6 @@ const HomePage = () => {
         <HomeIcon className="text-primary mr-5" />
         <p className="text-2xl text-primary font-bold">Bảng điều khiển</p>
       </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {/* ... (Keep existing Stat Cards) ... */}
@@ -228,26 +225,7 @@ const HomePage = () => {
             </p>
           </CardContent>
         </Card>
-        <Card className="w-full bg-primary">
-          <CardHeader>
-            <CardTitle className="text-white">Quỹ tiền còn</CardTitle>
-            <CardDescription className="text-white/80 text-xs">
-              Hệ thống
-            </CardDescription>
-            <CardAction>
-              <div className="bg-[#7edd94] rounded-3xl p-2">
-                <PiggyBank className="text-white w-10 h-10" />
-              </div>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold text-white">
-              {formatCurrency(stats.remainingFunds)}
-            </p>
-          </CardContent>
-        </Card>
       </div>
-
       {/* MAIN CONTENT GRID */}
       <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* COLUMN 1: OVERDUE LIST (2/3 width) */}
@@ -300,7 +278,11 @@ const HomePage = () => {
                           </div>
                           <p className="text-sm text-gray-600 truncate">
                             Hợp đồng: {item.contractCode} • Hạn:{" "}
-                            {new Date(item.dueDate).toLocaleDateString("vi-VN")}
+                            {item.dueDate
+                              ? new Date(item.dueDate).toLocaleDateString(
+                                  "vi-VN",
+                                )
+                              : "N/A"}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -311,7 +293,7 @@ const HomePage = () => {
                                 isCalled ? "text-green-700" : "text-red-600"
                               }`}
                             >
-                              {formatCurrency(item.totalAmount)}
+                              {formatCurrency(item.totalAmount || 0)}
                             </p>
                           </div>
                           <Button
@@ -369,7 +351,7 @@ const HomePage = () => {
                         </span>
                         <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                           {new Date(
-                            promise.promiseToPayDate
+                            promise.promiseToPayDate,
                           ).toLocaleDateString("vi-VN")}
                         </span>
                       </div>
@@ -386,40 +368,16 @@ const HomePage = () => {
               )}
             </CardContent>
           </Card>
-
-          {/* Quick Stats Card */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Tổng quan tuần này</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-2">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">Hợp đồng mới</span>
-                <span className="font-bold text-blue-600">5</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">Đã thanh lý</span>
-                <span className="font-bold text-red-600">2</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-gray-600">Gia hạn</span>
-                <span className="font-bold text-yellow-600">3</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-600">Thu lãi</span>
-                <span className="font-bold text-green-600">12</span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
       {selectedLogItem && (
-        <LogCommunicationDialog
+        <DebtReminderDialog
           open={openLogDialog}
           onOpenChange={setOpenLogDialog}
-          loanId={selectedLogItem.loanId}
-          customerName={selectedLogItem.customerName || "Khách hàng"}
+          loanId={selectedLogItem.id} // ID is already correct from map
+          loanCode={selectedLogItem.contractCode || ""}
+          customerName={selectedLogItem.customerName}
           onSuccess={handleLogSuccess}
         />
       )}
