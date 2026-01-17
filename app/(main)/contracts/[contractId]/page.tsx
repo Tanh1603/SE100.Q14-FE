@@ -9,7 +9,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import { ContractOverview } from "@/components/features/contract/detail/contract-overview";
 import { RepaymentSchedule } from "@/components/features/contract/detail/repayment-schedule";
 import { TransactionHistory } from "@/components/features/contract/detail/transaction-history";
-import { ActionPanel } from "@/components/features/contract/detail/action-panel";
+import { StatusAwareActionPanel } from "@/components/features/contract/detail/status-aware-action-panel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -54,6 +54,39 @@ export default function ContractDetailPage() {
   const handleRefresh = () => {
     fetchLoan();
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return "default";
+      case "PENDING":
+        return "outline";
+      case "CLOSED":
+        return "secondary";
+      case "OVERDUE":
+      case "REJECTED":
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return "Đang hoạt động";
+      case "PENDING":
+        return "Chờ duyệt";
+      case "CLOSED":
+        return "Đã đóng";
+      case "OVERDUE":
+        return "Quá hạn";
+      case "REJECTED":
+        return "Đã từ chối";
+      default:
+        return status;
+    }
   };
 
   if (loading) {
@@ -109,15 +142,14 @@ export default function ContractDetailPage() {
               <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
                 Hợp đồng {loan.loanCode}
                 <Badge
-                  variant={
-                    loan.status === "ACTIVE"
-                      ? "default"
-                      : loan.status === "CLOSED"
-                        ? "secondary"
-                        : "destructive"
+                  variant={getStatusBadgeVariant(loan.status)}
+                  className={
+                    loan.status === "PENDING"
+                      ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                      : ""
                   }
                 >
-                  {loan.status}
+                  {getStatusLabel(loan.status)}
                 </Badge>
               </h1>
             </div>
@@ -133,26 +165,8 @@ export default function ContractDetailPage() {
         {/* Overview Cards */}
         <ContractOverview loan={loan} />
 
-        {/* Action Panel - Only show for actionable states */}
-        {(loan.status === "ACTIVE" ||
-          loan.status === "OVERDUE" ||
-          loan.status === "PENDING") && (
-          <ActionPanel loan={loan} onRefresh={handleRefresh} />
-        )}
-
-        {/* View-Only Notice for CLOSED and REJECTED */}
-        {(loan.status === "CLOSED" || loan.status === "REJECTED") && (
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center">
-            <p className="text-gray-600 font-medium">
-              {loan.status === "CLOSED"
-                ? "📋 Hợp đồng đã đóng - Chế độ xem"
-                : "🚫 Hợp đồng bị từ chối - Chế độ xem"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Không thể thực hiện thao tác trên hợp đồng này.
-            </p>
-          </div>
-        )}
+        {/* Status-Aware Action Panel - Handles all states */}
+        <StatusAwareActionPanel loan={loan} onRefresh={handleRefresh} />
 
         {/* Schedule */}
         <RepaymentSchedule key={`schedule-${refreshKey}`} loan={loan} />

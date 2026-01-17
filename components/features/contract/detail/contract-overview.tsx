@@ -116,11 +116,19 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
                   className="flex flex-col md:flex-row justify-between p-4 gap-4"
                 >
                   <div className="flex-1 space-y-2">
-                    <div className="font-medium flex items-center gap-2">
-                      {item.ownerName}
-                      <Badge variant="outline" className="text-xs">
-                        Tài sản {index + 1}
-                      </Badge>
+                    <div className="flex flex-col gap-1">
+                      <div className="font-bold flex items-center gap-2 text-base">
+                        {info.name || info.description || "Tài sản"}
+                        <Badge
+                          variant="outline"
+                          className="text-xs font-normal"
+                        >
+                          Tài sản {index + 1}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.ownerName}
+                      </div>
                     </div>
 
                     {/* Dynamic Collateral Details Grid */}
