@@ -25,6 +25,7 @@ export interface LoanDetailDTO extends LoanDTO {
   notes: string | null;
   updatedAt: string;
   createdBy: string;
+  loanTypeId?: number; // Added for editing pending loans
   customer: {
     id: string;
     fullName: string;
@@ -38,7 +39,7 @@ export interface LoanDetailDTO extends LoanDTO {
     id: string;
     collateralTypeId: number;
     ownerName: string;
-    collateralInfo: any;
+    collateralInfo: Record<string, unknown>;
     status: string;
     storageLocation: string;
     appraisedValue: number;

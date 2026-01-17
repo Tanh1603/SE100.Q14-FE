@@ -6,22 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SimpleDateRangePicker } from "@/components/ui/simple-date-range";
 import { LoanService } from "@/lib/loan.service";
-import { DisbursementService } from "@/lib/disbursement.service";
-import { generateIdempotencyKey } from "@/lib/payment.service";
-import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
 import { loan } from "@/types/asset";
-import { useUser } from "@clerk/nextjs";
 import { addDays, isWithinInterval } from "date-fns";
-import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Banknote,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { DateRange } from "react-day-picker";
 import { toast } from "sonner";
-import { getLoanColumns } from "./columns";
+import { getActiveLoanColumns } from "./columns";
+import { PaymentDialog } from "@/components/features/payment/payment-dialog";
 import { Badge } from "@/components/ui/badge";
 
-export default function LoanManagementPage() {
-  const { user, isLoaded } = useUser();
+export default function ActiveLoansPage() {
   const router = useRouter();
 
   const [data, setData] = useState<loan[]>([]);
@@ -29,7 +31,7 @@ export default function LoanManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: addDays(new Date(), -30),
+    from: addDays(new Date(), -90),
     to: new Date(),
   });
 
@@ -39,16 +41,9 @@ export default function LoanManagementPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Role Guard
-  useEffect(() => {
-    if (isLoaded) {
-      const userRole = getUserRole(user?.publicMetadata);
-      if (!isManagerOrAdmin(userRole)) {
-        toast.error("Bạn không có quyền truy cập trang này");
-        router.push("/home");
-      }
-    }
-  }, [isLoaded, user, router]);
+  // Payment Dialog
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<loan | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -57,7 +52,7 @@ export default function LoanManagementPage() {
         page,
         limit,
         undefined,
-        "PENDING",
+        "ACTIVE",
       );
       setData(response.data);
       setTotalItems(response.meta.totalItems);
@@ -74,7 +69,7 @@ export default function LoanManagementPage() {
     fetchData();
   }, [fetchData]);
 
-  // Client-side filtering
+  // Client-side filtering for search and date (applied on top of server pagination)
   useEffect(() => {
     let result = data;
 
@@ -84,6 +79,7 @@ export default function LoanManagementPage() {
       result = result.filter(
         (item) =>
           item.customer.fullName.toLowerCase().includes(q) ||
+          item.customer.phone?.includes(q) ||
           (item as unknown as { contractNumber?: string }).contractNumber
             ?.toLowerCase()
             .includes(q),
@@ -104,87 +100,40 @@ export default function LoanManagementPage() {
     setFilteredData(result);
   }, [data, search, dateRange]);
 
-  const handleApprove = async (loan: loan) => {
-    if (!confirm("Bạn có chắc chắn muốn duyệt khoản vay này?")) return;
-    try {
-      // 1. Approve Loan
-      await LoanService.approveLoan(loan.id, "Approved by Manager");
-
-      // 2. Fetch full details to get Store ID (as summary might miss it)
-      // Note: If loan object already has storeId in asset.warehouses.id, we could use it,
-      // but adapter sets it to 'unknown' or 'wh-1' if missing in summary. Safest to fetch.
-      const fullLoan = await LoanService.getLoanById(loan.id);
-
-      if (!fullLoan.storeId) {
-        toast.error(
-          "Không thể giải ngân tự động: Thiếu thông tin Chi nhánh (Store ID)",
-        );
-        return;
-      }
-
-      // 3. Auto Disburse
-      await DisbursementService.create(
-        {
-          loanId: loan.id,
-          storeId: fullLoan.storeId,
-          amount: fullLoan.loanAmount,
-          disbursementMethod: "CASH", // Defaulting to CASH for auto-flow
-          recipientName: fullLoan.customer?.fullName || "Khách hàng",
-          notes: "Giải ngân tự động sau khi duyệt",
-        },
-        generateIdempotencyKey(),
-      );
-
-      toast.success("Đã duyệt và giải ngân thành công!");
-      fetchData(); // Refresh list
-    } catch (error: unknown) {
-      console.error(error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Không thể xử lý khoản vay";
-      toast.error(`Lỗi: ${errorMessage}`);
-    }
-  };
-
-  const handleReject = async (loan: loan) => {
-    const reason = prompt("Nhập lý do từ chối:");
-    if (reason === null) return; // Cancelled
-
-    try {
-      await LoanService.rejectLoan(loan.id, reason || "Rejected by Manager");
-      toast.success("Đã từ chối khoản vay");
-      fetchData(); // Refresh
-    } catch (error) {
-      console.error(error);
-      toast.error("Lỗi khi từ chối khoản vay");
-    }
+  const handlePay = (loan: loan) => {
+    setSelectedLoan(loan);
+    setIsPaymentOpen(true);
   };
 
   const handleView = (loan: loan) => {
-    // Navigate to details using ID as per API requirement for pending loans
     router.push(`/contracts/${loan.id}`);
   };
 
-  const columns = getLoanColumns({
-    onApprove: handleApprove,
-    onReject: handleReject,
+  const columns = getActiveLoanColumns({
+    onPay: handlePay,
     onView: handleView,
   });
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Duyệt Khoản Vay (Chờ duyệt)
-        </h1>
-        <p className="text-muted-foreground">
-          Danh sách các khoản vay đang chờ phê duyệt.
-        </p>
+        <div className="flex items-center gap-3">
+          <Banknote className="h-8 w-8 text-green-600" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Thu Lãi (Khoản Vay Hoạt Động)
+            </h1>
+            <p className="text-muted-foreground">
+              Danh sách các khoản vay đang hoạt động - Thu lãi nhanh
+            </p>
+          </div>
+        </div>
       </div>
 
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
-            <span>Danh sách chờ duyệt</span>
+            <span>Danh sách khoản vay đang hoạt động</span>
             <Badge variant="secondary" className="text-lg px-3 py-1">
               {totalItems} khoản vay
             </Badge>
@@ -197,7 +146,7 @@ export default function LoanManagementPage() {
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Tìm tên, mã HĐ..."
+                  placeholder="Tìm tên, SĐT, mã HĐ..."
                   className="pl-8"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -245,6 +194,20 @@ export default function LoanManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      {selectedLoan && (
+        <PaymentDialog
+          open={isPaymentOpen}
+          onOpenChange={setIsPaymentOpen}
+          loanId={selectedLoan.id}
+          loanCode={
+            (selectedLoan as unknown as { contractNumber?: string })
+              .contractNumber || selectedLoan.id
+          }
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }

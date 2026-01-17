@@ -4,11 +4,9 @@ import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Edit,
   FileSignature,
   PlusCircle,
   Search,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
@@ -25,6 +23,7 @@ import { Store } from "@/types/store";
 import { Customer } from "@/types/customer";
 import { PaymentDialog } from "@/components/features/payment/payment-dialog";
 import { DebtReminderDialog } from "@/components/features/payment/debt-reminder-dialog";
+import { EditPendingLoanDialog } from "@/components/features/loan/edit-pending-loan-dialog";
 import { useRouter } from "next/navigation";
 import {
   Select,
@@ -58,6 +57,9 @@ const ContractPage = () => {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDebtReminderDialogOpen, setIsDebtReminderDialogOpen] =
     useState(false);
+  const [isEditPendingDialogOpen, setIsEditPendingDialogOpen] = useState(false);
+  const [editingLoanId, setEditingLoanId] = useState<string>("");
+  const [editingLoanCode, setEditingLoanCode] = useState<string>("");
   const router = useRouter();
 
   // State for data fetching & Filtering
@@ -230,6 +232,14 @@ const ContractPage = () => {
       }
     };
 
+    const handleEditPendingLoan = (e: CustomEvent) => {
+      if (e.detail?.loanId) {
+        setEditingLoanId(e.detail.loanId);
+        setEditingLoanCode(e.detail.loanCode || e.detail.loanId);
+        setIsEditPendingDialogOpen(true);
+      }
+    };
+
     window.addEventListener("quick-pay", handleQuickPay as EventListener);
     window.addEventListener(
       "debt-reminder",
@@ -242,6 +252,10 @@ const ContractPage = () => {
     window.addEventListener(
       "reject-loan",
       handleRejectLoan as unknown as EventListener,
+    );
+    window.addEventListener(
+      "edit-pending-loan",
+      handleEditPendingLoan as unknown as EventListener,
     );
 
     return () => {
@@ -257,6 +271,10 @@ const ContractPage = () => {
       window.removeEventListener(
         "reject-loan",
         handleRejectLoan as unknown as EventListener,
+      );
+      window.removeEventListener(
+        "edit-pending-loan",
+        handleEditPendingLoan as unknown as EventListener,
       );
     };
   }, [loans]);
@@ -429,7 +447,7 @@ const ContractPage = () => {
                 </Button>
               </Link>
 
-              <Button variant="outline">
+              {/* <Button variant="outline">
                 <Edit className="mr-2 h-4 w-4" />
                 Sửa
               </Button>
@@ -437,7 +455,7 @@ const ContractPage = () => {
               <Button variant="destructive" disabled>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Xóa
-              </Button>
+              </Button> */}
             </div>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -528,6 +546,15 @@ const ContractPage = () => {
           onSuccess={fetchLoans}
         />
       )}
+
+      {/* Edit Pending Loan Dialog */}
+      <EditPendingLoanDialog
+        open={isEditPendingDialogOpen}
+        onOpenChange={setIsEditPendingDialogOpen}
+        loanId={editingLoanId}
+        loanCode={editingLoanCode}
+        onSuccess={fetchLoans}
+      />
     </div>
   );
 };

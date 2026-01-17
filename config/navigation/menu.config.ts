@@ -14,6 +14,7 @@ import {
   ClipboardCheck,
   Settings,
   Tags,
+  Banknote,
 } from "lucide-react";
 
 export type MenuIcon =
@@ -21,6 +22,7 @@ export type MenuIcon =
   | "contracts"
   | "contracts-overdue"
   | "loan-approval"
+  | "loan-active"
   | "customers"
   | "assets"
   | "cashbook"
@@ -52,6 +54,7 @@ export const iconMap = {
   contracts: FileSignature,
   "contracts-overdue": FileWarning,
   "loan-approval": ClipboardCheck,
+  "loan-active": Banknote,
   customers: Users,
   assets: Archive,
   cashbook: Wallet,
@@ -90,6 +93,13 @@ export const menuConfig: MenuItem[] = [
   },
 
   {
+    title: "Thu lãi",
+    href: "/loans/active",
+    icon: "loan-active",
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+  },
+
+  {
     title: "Hợp đồng quá hạn",
     href: "/contracts/overdue",
     icon: "contracts-overdue",
@@ -103,6 +113,7 @@ export const menuConfig: MenuItem[] = [
     icon: "customers",
     roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
   },
+  // ... rest of the file ...
 
   // Assets
   {
@@ -151,7 +162,7 @@ export const menuConfig: MenuItem[] = [
     icon: "branch",
     roles: [Role.ADMIN],
   },
-  
+
   // Collateral Types
   {
     title: "Loại tài sản",

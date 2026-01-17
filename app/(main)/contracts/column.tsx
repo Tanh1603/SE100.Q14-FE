@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Check,
   X,
+  Edit,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -112,7 +113,7 @@ const LoanActions = ({ row }: { row: any }) => {
   const isPendingLoan = rawStatus === "PENDING";
   const showPaymentActions = isActiveLoan || isOverdueLoan;
 
-  // PENDING loans - show approve/reject buttons
+  // PENDING loans - show approve/reject/edit buttons
   if (isPendingLoan) {
     return (
       <div className="flex items-center gap-2">
@@ -123,6 +124,24 @@ const LoanActions = ({ row }: { row: any }) => {
           title="Xem chi tiết"
         >
           <Eye className="w-4 h-4 text-gray-500" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+          title="Sửa hồ sơ"
+          onClick={() => {
+            const event = new CustomEvent("edit-pending-loan", {
+              detail: {
+                loanId: row.original.id,
+                loanCode:
+                  (row.original as any).contractNumber || row.original.id,
+              },
+            });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Edit className="w-4 h-4 mr-1" /> Sửa hồ sơ
         </Button>
         <Button
           size="sm"

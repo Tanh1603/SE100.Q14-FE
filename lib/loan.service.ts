@@ -157,4 +157,26 @@ export const LoanService = {
   rejectLoan: async (id: string, note?: string) => {
     return LoanService.updateStatus(id, "REJECTED", note);
   },
+
+  updateLoan: async (
+    id: string,
+    data: {
+      loanAmount?: number;
+      repaymentMethod?: string;
+      loanTypeId?: number;
+      storeId?: string;
+      notes?: string;
+      collateralIds?: string[];
+    },
+  ): Promise<any> => {
+    console.log(
+      "LoanService.updateLoan - Sending payload:",
+      JSON.stringify(data, null, 2),
+    );
+    const response = await apiClient.put<{ data: any }>(
+      `${ENDPOINTS.LOANS}/${id}`,
+      data,
+    );
+    return response.data.data;
+  },
 };

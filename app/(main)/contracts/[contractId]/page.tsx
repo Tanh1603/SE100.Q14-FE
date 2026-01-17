@@ -113,8 +113,8 @@ export default function ContractDetailPage() {
                     loan.status === "ACTIVE"
                       ? "default"
                       : loan.status === "CLOSED"
-                      ? "secondary"
-                      : "destructive"
+                        ? "secondary"
+                        : "destructive"
                   }
                 >
                   {loan.status}
@@ -133,8 +133,26 @@ export default function ContractDetailPage() {
         {/* Overview Cards */}
         <ContractOverview loan={loan} />
 
-        {/* Action Panel */}
-        <ActionPanel loan={loan} onRefresh={handleRefresh} />
+        {/* Action Panel - Only show for actionable states */}
+        {(loan.status === "ACTIVE" ||
+          loan.status === "OVERDUE" ||
+          loan.status === "PENDING") && (
+          <ActionPanel loan={loan} onRefresh={handleRefresh} />
+        )}
+
+        {/* View-Only Notice for CLOSED and REJECTED */}
+        {(loan.status === "CLOSED" || loan.status === "REJECTED") && (
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-center">
+            <p className="text-gray-600 font-medium">
+              {loan.status === "CLOSED"
+                ? "📋 Hợp đồng đã đóng - Chế độ xem"
+                : "🚫 Hợp đồng bị từ chối - Chế độ xem"}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Không thể thực hiện thao tác trên hợp đồng này.
+            </p>
+          </div>
+        )}
 
         {/* Schedule */}
         <RepaymentSchedule key={`schedule-${refreshKey}`} loan={loan} />
