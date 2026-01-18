@@ -143,7 +143,7 @@ const Page = () => {
       </div>
 
       <AppDialog
-        title="Thêm mới chi nhánh"
+        title={selectedBranch ? "Sửa đổi chi nhánh" : "Thêm chi nhánh mới"}
         open={openDialog}
         onOpenChange={() => {
           setOpenDialog(false)
