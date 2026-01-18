@@ -1,11 +1,10 @@
 "use client";
 
-import { Customer } from "@/types/customer";
+import { CustomerDTO } from "@/types/dto/customer.dto";
 import { ColumnDef } from "@tanstack/react-table";
-import { LucideImageOff } from "lucide-react";
-import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
-export const CustomerColumn: ColumnDef<Customer>[] = [
+export const CustomerColumn: ColumnDef<CustomerDTO>[] = [
   {
     accessorKey: "fullName",
     header: "Tên khách hàng",
@@ -13,10 +12,17 @@ export const CustomerColumn: ColumnDef<Customer>[] = [
   {
     accessorKey: "dob",
     header: "Ngày sinh",
+    cell: ({ row }) => {
+      const dob = row.original.dob;
+      if (!dob) return "-";
+      // Format date to DD/MM/YYYY
+      const date = new Date(dob);
+      return date.toLocaleDateString("vi-VN");
+    },
   },
   {
-    accessorKey: "cccd",
-    header: "Số cccd",
+    accessorKey: "nationalId",
+    header: "Số CCCD",
   },
   {
     accessorKey: "phone",
@@ -25,33 +31,22 @@ export const CustomerColumn: ColumnDef<Customer>[] = [
   {
     accessorKey: "email",
     header: "Email",
+    cell: ({ row }) => row.original.email || "-",
   },
   {
-    accessorKey: "status",
-    header: "Tình trạng",
+    accessorKey: "address",
+    header: "Địa chỉ",
+    cell: ({ row }) => row.original.address || "-",
   },
   {
-    accessorKey: "avatar",
-    header: "Ảnh",
+    accessorKey: "customerType",
+    header: "Loại KH",
     cell: ({ row }) => {
-      const avatar = row.original.avatar;
-
-      return (
-        <div className="flex justify-center">
-          <div className="relative w-10 h-10">
-            {avatar ? (
-              <Image
-                src={avatar}
-                alt={row.original.fullName}
-                fill
-                className=" object-contain"
-              />
-            ) : (
-              <LucideImageOff className="w-10 h-10 text-muted-foreground flex items-center justify-center" />
-            )}
-          </div>
-        </div>
-      );
+      const type = row.original.customerType;
+      if (type === "VIP") {
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">VIP</Badge>;
+      }
+      return <Badge variant="secondary">Thường</Badge>;
     },
   },
 ];

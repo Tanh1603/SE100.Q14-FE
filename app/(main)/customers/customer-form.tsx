@@ -35,32 +35,98 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea"; // Added Import
 import { useProvinces, useWardByProvince } from "@/hooks/use-location";
-import { Customer } from "@/types/customer";
-import { CUSTOMER_STATUS_OPTIONS } from "@/types/enum";
+import { CustomerDTO } from "@/types/dto/customer.dto";
 import { Briefcase, ChevronDown, IdCard, UsersRound } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type CustomerFormProps = {
-  initialCustomer?: Customer | null;
+  initialCustomer?: CustomerDTO | null;
+  onSuccess?: () => void;
 };
 
-const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
-  const form = useForm<Customer>({
-    defaultValues: initialCustomer || {},
+// Internal form data type that matches the form structure
+type CustomerFormData = {
+  fullName?: string;
+  dob?: string;
+  phone?: string;
+  nationalId?: string;
+  nationalIdIssueDate?: string;
+  nationalIdIssuePlace?: string;
+  email?: string;
+  customerType?: string;
+  provinceId?: string;
+  wardId?: string;
+  permanentAddress?: string;
+  address?: string;
+  occupation?: string; // mapped correctly now
+  workplace?: string;
+  monthlyIncome?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  fatherName?: string;
+  fatherPhone?: string;
+  fatherOccupation?: string;
+  motherName?: string;
+  motherPhone?: string;
+  motherOccupation?: string;
+  spouseName?: string;
+  spousePhone?: string;
+  spouseOccupation?: string;
+};
+
+import { useCreateCustomer } from "@/hooks/use-customer";
+// ... other imports
+
+const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
+  const isEditMode = !!initialCustomer;
+  const createMutation = useCreateCustomer();
+
+  const form = useForm<CustomerFormData>({
+    defaultValues: initialCustomer
+      ? {
+          fullName: initialCustomer.fullName,
+          dob: initialCustomer.dob,
+          phone: initialCustomer.phone,
+          nationalId: initialCustomer.nationalId,
+          nationalIdIssueDate: initialCustomer.nationalIdIssueDate,
+          nationalIdIssuePlace: initialCustomer.nationalIdIssuePlace,
+          email: initialCustomer.email,
+          customerType: initialCustomer.customerType,
+          provinceId: initialCustomer.provinceId,
+          wardId: initialCustomer.wardId,
+          address: initialCustomer.address,
+          occupation: initialCustomer.occupation, // mapped correctly now
+          workplace: initialCustomer.workplace,
+          monthlyIncome: initialCustomer.monthlyIncome,
+          emergencyContactName: initialCustomer.emergencyContactName,
+          emergencyContactPhone: initialCustomer.emergencyContactPhone,
+          fatherName: initialCustomer.fatherName,
+          fatherPhone: initialCustomer.fatherPhone,
+          fatherOccupation: initialCustomer.fatherOccupation,
+          motherName: initialCustomer.motherName,
+          motherPhone: initialCustomer.motherPhone,
+          motherOccupation: initialCustomer.motherOccupation,
+          spouseName: initialCustomer.spouseName,
+          spousePhone: initialCustomer.spousePhone,
+          spouseOccupation: initialCustomer.spouseOccupation,
+          permanentAddress: initialCustomer.address, // mapping address to permanentAddress logic? Check this.
+        }
+      : {
+          customerType: "REGULAR", // Default
+        },
   });
 
   const { data: provinces = [], isLoading: provinceLoading } = useProvinces();
 
   // Avatar state
-  const [avatar, setAvatar] = useState<string | undefined | undefined>(
-    initialCustomer?.avatar
-  );
+  const [avatar, setAvatar] = useState<string | undefined>(undefined);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadClick = (type?: "FRONT" | "BACK") => {
-    // TODO: Handle type distinction
+  const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
 
@@ -68,12 +134,16 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Store file for upload
+    setFrontFile(file);
+
+    // Preview
     const reader = new FileReader();
     reader.onload = () => setAvatar(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  // handle locations
+  // ... location logic ...
   const provinceId = form.watch("provinceId");
   const selectedProvince = provinces?.find((p) => p.id === provinceId);
   const provinceCode = selectedProvince?.code ?? "";
@@ -81,9 +151,41 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
     useWardByProvince(provinceCode);
 
   // handle submit
-  const onSubmit = (data: Customer) => {
-    console.log(data);
+  const onSubmit = async (data: CustomerFormData) => {
+    try {
+      const formData = new FormData();
+
+      // Append all text fields
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          // Handle numeric fields if needed, or just append as string
+          formData.append(key, value.toString());
+        }
+      });
+
+      // Append files
+      if (frontFile) {
+        formData.append("mattruoc", frontFile);
+      }
+      // TODO: Handle back side file (matsau) separately if UI allows
+
+      if (isEditMode) {
+        // TODO: Implement update
+        console.log("Update not implemented yet");
+      } else {
+        await createMutation.mutateAsync(formData);
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      console.error("Failed to submit customer form", error);
+      // You might want to show a toast here
+    }
   };
+
+  const CUSTOMER_TYPE_OPTIONS = [
+    { label: "Thường", value: "REGULAR" },
+    { label: "VIP", value: "VIP" },
+  ];
 
   return (
     <Form {...form}>
@@ -158,7 +260,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="cccd"
+                  name="nationalId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -173,7 +275,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="issueDate"
+                  name="nationalIdIssueDate"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -188,7 +290,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="issuePlace"
+                  name="nationalIdIssuePlace"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -222,20 +324,23 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="customerType"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Tình trạng<span className="text-red-500">*</span>
+                        Loại Khách Hàng<span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Select value={field.value}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chọn tình trạng" />
+                            <SelectValue placeholder="Chọn loại khách hàng" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              {CUSTOMER_STATUS_OPTIONS.map((item, index) => (
+                              {CUSTOMER_TYPE_OPTIONS.map((item, index) => (
                                 <SelectItem key={index} value={item.value}>
                                   {item.label}
                                 </SelectItem>
@@ -258,7 +363,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   </span>
                   <div
                     className="relative w-full max-w-sm aspect-3/2 rounded-xl bg-white border-2 border-dashed border-gray-300 cursor-pointer flex items-center justify-center overflow-hidden hover:border-primary hover:bg-gray-50 transition-all shadow-sm group"
-                    onClick={() => handleUploadClick("FRONT")}
+                    onClick={() => handleUploadClick()}
                   >
                     {avatar ? (
                       <Image
@@ -429,10 +534,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                       <FormControl>
                         <Textarea
                           placeholder="Nhập địa chỉ hiện tại..."
-                          className="min-h-[80px]" // Make it match height or use single line? User wants to see full text. Textarea is safer. But maybe too big.
-                          // Actually, for "Current Address", if it's the "Specific Address" only, it should match the layout of Permanent Address Line 1?
-                          // But here it was in a 3-col grid item. If I make it Textarea, it will be taller than Select.
-                          // That's fine, flex/grid will handle it.
+                          className="min-h-[80px]"
                           {...field}
                         />
                       </FormControl>
@@ -463,7 +565,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <FormField
                   control={form.control}
-                  name="otherInfo.job"
+                  name="occupation"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -479,7 +581,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="otherInfo.workplace"
+                  name="workplace"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -494,7 +596,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="otherInfo.income"
+                  name="monthlyIncome"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Thu nhập hàng tháng</FormLabel>
@@ -509,7 +611,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 border-t pt-4">
                 <FormField
                   control={form.control}
-                  name="otherInfo.emergencyContactName"
+                  name="emergencyContactName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -525,7 +627,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
 
                 <FormField
                   control={form.control}
-                  name="otherInfo.emergencyContactPhone"
+                  name="emergencyContactPhone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
@@ -567,7 +669,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="familyInfo.father.fullName"
+                    name="fatherName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -581,7 +683,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.father.phone"
+                    name="fatherPhone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -595,7 +697,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.father.job"
+                    name="fatherOccupation"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -618,7 +720,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="familyInfo.mother.fullName"
+                    name="motherName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -632,7 +734,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.mother.phone"
+                    name="motherPhone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -646,7 +748,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.mother.job"
+                    name="motherOccupation"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
@@ -669,7 +771,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="familyInfo.spouse.fullName"
+                    name="spouseName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Họ tên</FormLabel>
@@ -681,7 +783,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.spouse.phone"
+                    name="spousePhone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Số điện thoại</FormLabel>
@@ -693,7 +795,7 @@ const CustomerForm = ({ initialCustomer }: CustomerFormProps) => {
                   />
                   <FormField
                     control={form.control}
-                    name="familyInfo.spouse.job"
+                    name="spouseOccupation"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Nghề nghiệp</FormLabel>

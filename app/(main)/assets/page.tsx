@@ -17,12 +17,14 @@ import {
   Package,
   FileText,
   User,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { CollateralService } from "@/lib/collateral.service";
 import { LoanService } from "@/lib/loan.service";
 import { CollateralAssetResponse } from "@/types/dto/collateral.dto";
-import { AssetActionPanel } from "./asset-action-panel";
+import { AssetActionPanel } from "@/components/features/asset/asset-action-panel";
 import { useUser } from "@clerk/nextjs";
 import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
 import { cn } from "@/lib/utils";
@@ -54,6 +56,7 @@ interface LoanWithAssets {
 }
 
 const AssetPage = () => {
+  const router = useRouter();
   const [loansWithAssets, setLoansWithAssets] = useState<LoanWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -531,15 +534,32 @@ const AssetPage = () => {
                           </div>
                         </div>
 
-                        {/* Quick Actions for Overdue Loans */}
-                        {loan.isOverdue && isAdminOrManager && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Badge variant="destructive" className="">
+                        {/* Quick Actions */}
+                        <div
+                          className="flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {loan.loanId !== "UNLINKED" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1 text-muted-foreground hover:text-primary"
+                              onClick={() =>
+                                router.push(`/contracts/${loan.loanId}`)
+                              }
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="hidden sm:inline">Chi tiết</span>
+                            </Button>
+                          )}
+
+                          {loan.isOverdue && isAdminOrManager && (
+                            <Badge variant="destructive" className="h-8">
                               <Gavel className="h-3 w-3 mr-1" />
                               Có thể thanh lý
                             </Badge>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
 

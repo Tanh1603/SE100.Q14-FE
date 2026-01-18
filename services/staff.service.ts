@@ -11,14 +11,49 @@ export const staffKeys = {
 export const StaffService = {
   list: async (token: string, query: string): Promise<PageResonse<Staff[]>> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/employees?${query}&limit=2`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [res, storeRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/employees?${query}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_BASE_URL}/stores?limit=100`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
+
       const data = await res.json();
-      return data as PageResonse<Staff[]>;
+      const storeData = await storeRes.json();
+      const stores = storeData.data || [];
+
+      const mappedData = data.data.map((item: any) => {
+        const metadata = item.publicMetadata || {};
+        const storeId = metadata.storeId;
+        const store = stores.find((s: any) => s.id === storeId);
+
+        // Translate role
+        let role = metadata.role;
+        if (role === "MANAGER" || role === "org:admin") role = "Quản lý";
+        else if (role === "STAFF" || role === "org:member") role = "Nhân viên";
+
+        return {
+          ...item,
+          storeId: storeId,
+          storeName: store ? store.name : "—",
+          role: role || "—",
+          status: metadata.status || item.status || "—",
+          // Assuming status might also be in metadata or root
+        };
+      });
+
+      return {
+        ...data,
+        data: mappedData,
+      } as PageResonse<Staff[]>;
     } catch (error) {
       console.log(error);
       throw error;

@@ -600,138 +600,150 @@ export function StatusAwareActionPanel({
     </Card>
   );
 
+  const handleOpenOtherNote = () => {
+    setCommChannel("IN_PERSON");
+    setCommType("INTEREST_REMINDER");
+    setIsCommOpen(true);
+  };
+
   const renderCommunicationDialog = () => (
-    <Dialog open={isCommOpen} onOpenChange={setIsCommOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="secondary"
-          className="flex-1 min-w-[150px] gap-2 border shadow-sm bg-white hover:bg-gray-50"
-        >
-          <MessageSquare className="h-4 w-4 text-gray-600" />
-          Ghi chú khác
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            Ghi nhận trao đổi
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-5 py-4">
-          <div className="grid grid-cols-2 gap-4">
+    <>
+      <Button
+        variant="secondary"
+        className="flex-1 min-w-[150px] gap-2 border shadow-sm bg-white hover:bg-gray-50"
+        onClick={handleOpenOtherNote}
+      >
+        <MessageSquare className="h-4 w-4 text-gray-600" />
+        Ghi chú khác
+      </Button>
+
+      <Dialog open={isCommOpen} onOpenChange={setIsCommOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              Ghi nhận trao đổi
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-5 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Kênh liên hệ</Label>
+                <Select
+                  value={commChannel}
+                  onValueChange={(v) =>
+                    setCommChannel(v as NotificationChannel)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PHONE_CALL">📞 Gọi điện</SelectItem>
+                    <SelectItem value="SMS">💬 Tin nhắn SMS</SelectItem>
+                    <SelectItem value="EMAIL">📧 Email</SelectItem>
+                    <SelectItem value="IN_PERSON">👥 Gặp trực tiếp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Loại thông báo</Label>
+                <Select
+                  value={commType}
+                  onValueChange={(v) => setCommType(v as NotificationType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTEREST_REMINDER">
+                      Nhắc đóng lãi
+                    </SelectItem>
+                    <SelectItem value="OVERDUE_REMINDER">
+                      Nhắc quá hạn
+                    </SelectItem>
+                    <SelectItem value="LIQUIDATION_WARNING">
+                      Cảnh báo thanh lý
+                    </SelectItem>
+                    <SelectItem value="PAYMENT_CONFIRMATION">
+                      Xác nhận thanh toán
+                    </SelectItem>
+                    <SelectItem value="LOAN_APPROVED">
+                      Thông báo duyệt vay
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label>Kênh liên hệ</Label>
+              <Label>Kết quả / Trạng thái</Label>
               <Select
-                value={commChannel}
-                onValueChange={(v) => setCommChannel(v as NotificationChannel)}
+                value={commStatus}
+                onValueChange={(v) => setCommStatus(v as NotificationStatus)}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={
+                    commStatus === "PROMISE_TO_PAY"
+                      ? "border-blue-500 bg-blue-50"
+                      : ""
+                  }
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PHONE_CALL">📞 Gọi điện</SelectItem>
-                  <SelectItem value="SMS">💬 Tin nhắn SMS</SelectItem>
-                  <SelectItem value="EMAIL">📧 Email</SelectItem>
-                  <SelectItem value="IN_PERSON">👥 Gặp trực tiếp</SelectItem>
+                  <SelectItem value="ANSWERED">
+                    ✅ Đã nghe máy / Đã xem
+                  </SelectItem>
+                  <SelectItem value="NO_ANSWER">🚫 Không nghe máy</SelectItem>
+                  <SelectItem value="PROMISE_TO_PAY">
+                    🗓️ Hẹn thanh toán (Promise to Pay)
+                  </SelectItem>
+                  <SelectItem value="FAILED">❌ Gửi thất bại</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {commStatus === "PROMISE_TO_PAY" && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <Label className="text-blue-700 font-semibold">
+                  Ngày hứa trả
+                </Label>
+                <Input
+                  type="date"
+                  value={promiseToPayDate}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setPromiseToPayDate(e.target.value)
+                  }
+                  className="bg-white"
+                />
+                <p className="text-xs text-blue-600">
+                  Chọn ngày khách hàng hẹn sẽ thanh toán.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label>Loại thông báo</Label>
-              <Select
-                value={commType}
-                onValueChange={(v) => setCommType(v as NotificationType)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INTEREST_REMINDER">
-                    Nhắc đóng lãi
-                  </SelectItem>
-                  <SelectItem value="OVERDUE_REMINDER">Nhắc quá hạn</SelectItem>
-                  <SelectItem value="LIQUIDATION_WARNING">
-                    Cảnh báo thanh lý
-                  </SelectItem>
-                  <SelectItem value="PAYMENT_CONFIRMATION">
-                    Xác nhận thanh toán
-                  </SelectItem>
-                  <SelectItem value="LOAN_APPROVED">
-                    Thông báo duyệt vay
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Kết quả / Trạng thái</Label>
-            <Select
-              value={commStatus}
-              onValueChange={(v) => setCommStatus(v as NotificationStatus)}
-            >
-              <SelectTrigger
-                className={
-                  commStatus === "PROMISE_TO_PAY"
-                    ? "border-blue-500 bg-blue-50"
-                    : ""
+              <Label>Ghi chú chi tiết</Label>
+              <Textarea
+                value={commContent}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  setCommContent(e.target.value)
                 }
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANSWERED">
-                  ✅ Đã nghe máy / Đã xem
-                </SelectItem>
-                <SelectItem value="NO_ANSWER">🚫 Không nghe máy</SelectItem>
-                <SelectItem value="PROMISE_TO_PAY">
-                  🗓️ Hẹn thanh toán (Promise to Pay)
-                </SelectItem>
-                <SelectItem value="FAILED">❌ Gửi thất bại</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {commStatus === "PROMISE_TO_PAY" && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <Label className="text-blue-700 font-semibold">
-                Ngày hứa trả
-              </Label>
-              <Input
-                type="date"
-                value={promiseToPayDate}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setPromiseToPayDate(e.target.value)
-                }
-                className="bg-white"
+                placeholder="Ghi chú nội dung cuộc gọi, thái độ khách hàng..."
+                className="min-h-[100px]"
               />
-              <p className="text-xs text-blue-600">
-                Chọn ngày khách hàng hẹn sẽ thanh toán.
-              </p>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Ghi chú chi tiết</Label>
-            <Textarea
-              value={commContent}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                setCommContent(e.target.value)
-              }
-              placeholder="Ghi chú nội dung cuộc gọi, thái độ khách hàng..."
-              className="min-h-[100px]"
-            />
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsCommOpen(false)}>
-            Hủy
-          </Button>
-          <Button onClick={handleLogCommunication}>Lưu ghi chú</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCommOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleLogCommunication}>Lưu ghi chú</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 
   // Main render based on status

@@ -33,6 +33,7 @@ const StaffPage = () => {
     isFetching,
   } = useStaff({
     page,
+    limit: 20,
     q,
   });
   const { mutate, isPending } = useTerminateStaff();

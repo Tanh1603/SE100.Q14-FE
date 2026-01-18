@@ -52,6 +52,34 @@ import { StoreSelector } from "./store-selector";
 import { ReportService } from "@/lib/report.service";
 import { RevenueReportListResponse } from "@/types/report";
 import { Role } from "@/types/constant";
+import { exportRevenueReportToExcel } from "@/components/templates/reports/excel-export.helper";
+
+// Helper function to parse DD-MM-YYYY date format from API
+const parseDateDDMMYYYY = (dateStr: string): Date => {
+  // Handle both DD-MM-YYYY and YYYY-MM-DD formats
+  if (dateStr.includes("-")) {
+    const parts = dateStr.split("-");
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD format
+      return new Date(dateStr);
+    } else {
+      // DD-MM-YYYY format
+      const [day, month, year] = parts;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+  }
+  return new Date(dateStr);
+};
+
+// Format date as DD/MM/YYYY for display
+const formatDateDisplay = (dateStr: string): string => {
+  const date = parseDateDDMMYYYY(dateStr);
+  if (isNaN(date.getTime())) return dateStr; // Return original if parsing fails
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 const RevenueReportTab = () => {
   const [period, setPeriod] = useState("month");
@@ -106,10 +134,12 @@ const RevenueReportTab = () => {
       // Assuming API handles null storeId for aggregation
       try {
         setLoading(true);
+        const effectiveStoreId =
+          storeId === "__all__" ? undefined : storeId || undefined;
         const res = await ReportService.getRevenueReport(
           dateRange.from,
           dateRange.to,
-          storeId || undefined,
+          effectiveStoreId,
         );
         setData(res);
       } catch (error) {
@@ -132,12 +162,17 @@ const RevenueReportTab = () => {
 
   // Transform Data for Charts
   const chartData = (data && Array.isArray(data.data) ? data.data : []).map(
-    (d) => ({
-      name: new Date(d.date).getDate().toString(), // Show day number
-      revenue: d.totalRevenue,
-      expense: d.totalExpense,
-      profit: d.totalRevenue - d.totalExpense,
-    }),
+    (d) => {
+      const parsedDate = parseDateDDMMYYYY(d.date);
+      const dayNumber = parsedDate.getDate();
+      return {
+        name: String(dayNumber).padStart(2, "0"), // Show day number with leading zero
+        fullDate: formatDateDisplay(d.date), // Keep full date for tooltip
+        revenue: d.totalRevenue,
+        expense: d.totalExpense,
+        profit: d.totalRevenue - d.totalExpense,
+      };
+    },
   );
 
   const pieData =
@@ -199,7 +234,14 @@ const RevenueReportTab = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={() =>
+                data &&
+                exportRevenueReportToExcel(data, dateRange.from, dateRange.to)
+              }
+              disabled={!data}
+            >
               <Download className="mr-2 h-4 w-4" />
               Xuất Báo Cáo
             </Button>
@@ -469,7 +511,7 @@ const RevenueReportTab = () => {
                         (entry, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-medium whitespace-nowrap">
-                              {new Date(entry.date).toLocaleDateString("vi-VN")}
+                              {formatDateDisplay(entry.date)}
                             </TableCell>
                             <TableCell className="text-right text-green-600">
                               +{formatCurrency(entry.totalRevenue)}

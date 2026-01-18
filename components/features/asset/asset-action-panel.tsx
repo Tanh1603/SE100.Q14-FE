@@ -421,6 +421,21 @@ export function AssetActionPanel({
               <strong>Đang thanh lý</strong>?
             </p>
             <div className="grid gap-2">
+              <Label>Định giá</Label>
+              <Input
+                disabled
+                value={
+                  asset?.appraisedValue
+                    ? new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                        maximumFractionDigits: 0,
+                      }).format(asset.appraisedValue)
+                    : "0 ₫"
+                }
+              />
+            </div>
+            <div className="grid gap-2">
               <Label>Giá thanh lý tối thiểu</Label>
               <Input
                 type="number"
@@ -436,6 +451,21 @@ export function AssetActionPanel({
       case "sell":
         return (
           <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label>Định giá</Label>
+              <Input
+                disabled
+                value={
+                  asset?.sellPrice
+                    ? new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                        maximumFractionDigits: 0,
+                      }).format(asset.sellPrice)
+                    : "0 ₫"
+                }
+              />
+            </div>
             <div className="grid gap-2">
               <Label>Giá bán thực tế</Label>
               <Input

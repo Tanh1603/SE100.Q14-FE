@@ -9,7 +9,6 @@ import { LoanService } from "@/lib/loan.service";
 import { DisbursementService } from "@/lib/disbursement.service";
 import { generateIdempotencyKey } from "@/lib/payment.service";
 import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
-import { loan } from "@/types/asset";
 import { useUser } from "@clerk/nextjs";
 import { addDays, isWithinInterval } from "date-fns";
 import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,21 +16,26 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { DateRange } from "react-day-picker";
 import { toast } from "sonner";
-import { getLoanColumns } from "./columns";
+import { getLoanColumns, EnrichedLoan } from "./columns";
 import { Badge } from "@/components/ui/badge";
+import { EditPendingLoanDialog } from "@/components/features/loan/edit-pending-loan-dialog";
 
 export default function LoanManagementPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
 
-  const [data, setData] = useState<loan[]>([]);
-  const [filteredData, setFilteredData] = useState<loan[]>([]);
+  const [data, setData] = useState<EnrichedLoan[]>([]);
+  const [filteredData, setFilteredData] = useState<EnrichedLoan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
+
+  const [isEditPendingDialogOpen, setIsEditPendingDialogOpen] = useState(false);
+  const [editingLoanId, setEditingLoanId] = useState<string>("");
+  const [editingLoanCode, setEditingLoanCode] = useState<string>("");
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -59,7 +63,57 @@ export default function LoanManagementPage() {
         undefined,
         "PENDING",
       );
-      setData(response.data);
+
+      // Enrich each loan with collateral info by fetching details
+      const enrichedLoans = await Promise.all(
+        response.data.map(async (summaryLoan) => {
+          try {
+            const detail = await LoanService.getLoanById(summaryLoan.id);
+
+            // Extract collateral asset info
+            const collateralAssets = (detail.collateral || []).map((c) => {
+              // Try to get a readable name from collateralInfo
+              let assetName = "Tài sản";
+              if (c.collateralInfo) {
+                const info = c.collateralInfo as Record<string, unknown>;
+                assetName =
+                  (info.name as string) ||
+                  (info.description as string) ||
+                  (info.ten as string) ||
+                  (info.brand ? `${info.brand} ${info.model || ""}` : "") ||
+                  c.ownerName ||
+                  "Tài sản";
+              }
+
+              return {
+                id: c.id,
+                name: assetName.trim() || "Tài sản",
+                appraisedValue: c.appraisedValue || 0,
+                status: c.status,
+              };
+            });
+
+            return {
+              ...summaryLoan,
+              loanTypeName: detail.loanTypeName,
+              loanStatus: detail.status,
+              collateralAssets,
+            } as EnrichedLoan;
+          } catch (err) {
+            console.error(
+              `Failed to fetch details for loan ${summaryLoan.id}`,
+              err,
+            );
+            return {
+              ...summaryLoan,
+              loanStatus: "PENDING",
+              collateralAssets: [],
+            } as EnrichedLoan;
+          }
+        }),
+      );
+
+      setData(enrichedLoans);
       setTotalItems(response.meta.totalItems);
       setTotalPages(response.meta.totalPages);
     } catch (error) {
@@ -84,9 +138,7 @@ export default function LoanManagementPage() {
       result = result.filter(
         (item) =>
           item.customer.fullName.toLowerCase().includes(q) ||
-          (item as unknown as { contractNumber?: string }).contractNumber
-            ?.toLowerCase()
-            .includes(q),
+          item.contractNumber?.toLowerCase().includes(q),
       );
     }
 
@@ -104,7 +156,7 @@ export default function LoanManagementPage() {
     setFilteredData(result);
   }, [data, search, dateRange]);
 
-  const handleApprove = async (loan: loan) => {
+  const handleApprove = async (loan: EnrichedLoan) => {
     if (!confirm("Bạn có chắc chắn muốn duyệt khoản vay này?")) return;
     try {
       // 1. Approve Loan
@@ -145,7 +197,7 @@ export default function LoanManagementPage() {
     }
   };
 
-  const handleReject = async (loan: loan) => {
+  const handleReject = async (loan: EnrichedLoan) => {
     const reason = prompt("Nhập lý do từ chối:");
     if (reason === null) return; // Cancelled
 
@@ -159,15 +211,22 @@ export default function LoanManagementPage() {
     }
   };
 
-  const handleView = (loan: loan) => {
+  const handleView = (loan: EnrichedLoan) => {
     // Navigate to details using ID as per API requirement for pending loans
     router.push(`/contracts/${loan.id}`);
+  };
+
+  const handleEdit = (loan: EnrichedLoan) => {
+    setEditingLoanId(loan.id);
+    setEditingLoanCode(loan.contractNumber || loan.id);
+    setIsEditPendingDialogOpen(true);
   };
 
   const columns = getLoanColumns({
     onApprove: handleApprove,
     onReject: handleReject,
     onView: handleView,
+    onEdit: handleEdit,
   });
 
   return (
@@ -245,6 +304,14 @@ export default function LoanManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      <EditPendingLoanDialog
+        open={isEditPendingDialogOpen}
+        onOpenChange={setIsEditPendingDialogOpen}
+        loanId={editingLoanId}
+        loanCode={editingLoanCode}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

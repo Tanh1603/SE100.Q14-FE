@@ -1,16 +1,56 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { LoanDetailDTO } from "@/types/dto/loan.dto";
 import { format } from "date-fns";
-import { User, Phone, MapPin, CreditCard, Calendar, Box } from "lucide-react";
+import {
+  User,
+  Phone,
+  MapPin,
+  CreditCard,
+  Calendar,
+  Box,
+  Loader2,
+} from "lucide-react";
 import { StoreLabel } from "./store-label";
+import { AssetActionPanel } from "@/components/features/asset/asset-action-panel";
+import { CollateralService } from "@/lib/collateral.service";
+import { CollateralAssetResponse } from "@/types/dto/collateral.dto";
+import { useUser } from "@clerk/nextjs";
+import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
+import { toast } from "sonner";
 
 interface ContractOverviewProps {
   loan: LoanDetailDTO;
 }
 
 export function ContractOverview({ loan }: ContractOverviewProps) {
+  const { user } = useUser();
+  const role = getUserRole(user);
+  const canEdit = isManagerOrAdmin(role);
+
+  const [selectedAsset, setSelectedAsset] =
+    useState<CollateralAssetResponse | null>(null);
+  const [isAssetOpen, setIsAssetOpen] = useState(false);
+  const [isLoadingAsset, setIsLoadingAsset] = useState(false);
+
+  const handleAssetClick = async (assetId: string) => {
+    setIsLoadingAsset(true);
+    try {
+      const fullAsset = await CollateralService.getById(assetId);
+      setSelectedAsset(fullAsset);
+      setIsAssetOpen(true);
+    } catch (e) {
+      console.error(e);
+      toast.error("Không thể tải thông tin chi tiết tài sản");
+    } finally {
+      setIsLoadingAsset(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Customer Info */}
@@ -102,6 +142,11 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {isLoadingAsset && (
+            <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
           <div className="border rounded-md divide-y">
             {(loan.collateral || []).map((item, index) => {
               // Ensure collateralInfo is an object
@@ -113,11 +158,13 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
               return (
                 <div
                   key={item.id}
-                  className="flex flex-col md:flex-row justify-between p-4 gap-4"
+                  className="flex flex-col md:flex-row justify-between p-4 gap-4 cursor-pointer hover:bg-muted/50 transition-colors group relative"
+                  onClick={() => handleAssetClick(item.id)}
                 >
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left opacity-30" />
                   <div className="flex-1 space-y-2">
                     <div className="flex flex-col gap-1">
-                      <div className="font-bold flex items-center gap-2 text-base">
+                      <div className="font-bold flex items-center gap-2 text-base group-hover:text-primary transition-colors">
                         {info.name || info.description || "Tài sản"}
                         <Badge
                           variant="outline"
@@ -189,7 +236,7 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
                           </span>
                         </div>
                       )}
-                      {/* Fallback for other arbitrary keys if needed, or keep it strict to known keys */}
+                      {/* Fallback for other arbitrary keys if needed */}
                       {Object.entries(info)
                         .filter(
                           ([k]) =>
@@ -200,6 +247,7 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
                               "serial",
                               "condition",
                               "description",
+                              "name",
                             ].includes(k),
                         )
                         .map(([k, v]) => (
@@ -251,6 +299,18 @@ export function ContractOverview({ loan }: ContractOverviewProps) {
           </div>
         </CardContent>
       </Card>
+
+      <AssetActionPanel
+        open={isAssetOpen}
+        onOpenChange={setIsAssetOpen}
+        asset={selectedAsset}
+        mode="view"
+        onSuccess={() => {
+          setIsAssetOpen(false);
+          // Potential future enhancement: Refresh contract data
+        }}
+        isAdminOrManager={canEdit}
+      />
     </div>
   );
 }

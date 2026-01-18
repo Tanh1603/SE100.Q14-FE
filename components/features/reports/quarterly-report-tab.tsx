@@ -29,6 +29,7 @@ import {
 import { StoreSelector } from "./store-selector";
 import { QuarterlyReportPrint } from "@/components/templates/reports/quarterly-report-print";
 import { Role } from "@/types/constant";
+import { exportQuarterlyReportToExcel } from "@/components/templates/reports/excel-export.helper";
 
 const QuarterlyReportTab = () => {
   const [quarter, setQuarter] = useState("1");
@@ -47,10 +48,13 @@ const QuarterlyReportTab = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        // If "all" is selected, pass undefined to service to fetch aggregate
+        const effectiveStoreId =
+          storeId === "__all__" ? undefined : storeId || undefined;
         const res = await ReportService.getQuarterlyReport(
           parseInt(year),
           parseInt(quarter),
-          storeId || undefined,
+          effectiveStoreId,
         );
         setData(res);
 
@@ -156,7 +160,13 @@ const QuarterlyReportTab = () => {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              onClick={() =>
+                data && exportQuarterlyReportToExcel(data, year, quarter)
+              }
+              disabled={!data}
+            >
               <Download className="mr-2 h-4 w-4" />
               Xuất Excel
             </Button>

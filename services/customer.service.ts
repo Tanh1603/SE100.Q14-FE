@@ -1,3 +1,5 @@
+import { PagedCustomerResponseDTO } from "@/types/dto/customer.dto";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export const customerKeys = {
@@ -7,21 +9,56 @@ export const customerKeys = {
 };
 
 export const CustomerService = {
-  list: async (token: string) => {
+  list: async (
+    token: string,
+    params?: { page?: number; limit?: number; search?: string },
+  ): Promise<PagedCustomerResponseDTO> => {
     try {
-      console.log("API_BASE_URL =", API_BASE_URL);
+      const url = new URL(`${API_BASE_URL}/customers`);
+      if (params?.page) url.searchParams.append("page", params.page.toString());
+      if (params?.limit)
+        url.searchParams.append("limit", params.limit.toString());
+      if (params?.search) url.searchParams.append("search", params.search);
 
-      const res = await fetch(`${API_BASE_URL}/customers`, {
+      const res = await fetch(url.toString(), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch customers: ${res.statusText}`);
+      }
+
       const data = await res.json();
-      console.log(res);
-      return data;
+      return data as PagedCustomerResponseDTO;
     } catch (error) {
-      console.log("test", error);
+      console.log("Error fetching customers:", error);
+      throw error;
+    }
+  },
+
+  create: async (data: FormData, token: string): Promise<any> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/customers`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header needed for FormData; browser sets it with boundary
+        },
+        body: data,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to create customer");
+      }
+
+      return await res.json();
+    } catch (error) {
+      console.log("Error creating customer:", error);
+      throw error;
     }
   },
 
