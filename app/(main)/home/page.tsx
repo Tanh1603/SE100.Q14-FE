@@ -57,8 +57,33 @@ const HomePage = () => {
   const [openLogDialog, setOpenLogDialog] = useState(false);
   const [selectedLogItem, setSelectedLogItem] = useState<any>(null);
 
-  // Local state for "Called Today" visualization
+  // Local state for "Called Today" visualization (in-session only)
   const [calledItems, setCalledItems] = useState<Set<string>>(new Set());
+
+  // Helper function to check if an overdue item has an active (non-expired) promise-to-pay
+  const hasActivePromise = (loanId: string): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+    // Check if there's a promise for this loan with a date >= today
+    const activePromise = promisesToPay.find((promise) => {
+      if (promise.loanId !== loanId) return false;
+      if (!promise.promiseToPayDate) return false;
+
+      const promiseDate = new Date(promise.promiseToPayDate);
+      promiseDate.setHours(0, 0, 0, 0);
+
+      // Promise is active if the date is today or in the future
+      return promiseDate >= today;
+    });
+
+    return !!activePromise;
+  };
+
+  // Combined check: either called in this session OR has active promise from backend
+  const isItemHandled = (itemId: string, loanId: string): boolean => {
+    return calledItems.has(itemId) || hasActivePromise(loanId);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -250,7 +275,9 @@ const HomePage = () => {
             ) : (
               <div className="space-y-3">
                 {overdueItems.map((item) => {
-                  const isCalled = calledItems.has(item.id);
+                  // Check both session state and backend promises-to-pay
+                  const loanIdToCheck = item.loanId || item.id;
+                  const isCalled = isItemHandled(item.id, loanIdToCheck);
                   return (
                     <div
                       key={item.id}
