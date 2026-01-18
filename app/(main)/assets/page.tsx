@@ -85,17 +85,50 @@ const AssetPage = () => {
     setLoading(true);
     try {
       // Fetch all collateral assets with filters
-      const response = await CollateralService.getAll(page, limit, "", {
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-        collateralTypeId: typeFilter === "ALL" ? undefined : Number(typeFilter),
-      });
-      const assets = response.data;
+      const isFiltering = statusFilter !== "ALL" || typeFilter !== "ALL";
+      // If filters are active, fetch a larger dataset (up to 1000) to filter client-side
+      // because the API does not support these filters via query parameters.
+      const fetchPage = isFiltering ? 1 : page;
+      const fetchLimit = isFiltering ? 1000 : limit;
+
+      const response = await CollateralService.getAll(
+        fetchPage,
+        fetchLimit,
+        "",
+      );
+      let assets = response.data;
+
+      // Apply client-side filtering
+      if (isFiltering) {
+        if (statusFilter !== "ALL") {
+          assets = assets.filter((asset) => asset.status === statusFilter);
+        }
+        if (typeFilter !== "ALL") {
+          assets = assets.filter(
+            (asset) => asset.collateralTypeId === Number(typeFilter),
+          );
+        }
+      }
+
+      // Calculate pagination for filtered results
+      let paginatedAssets = assets;
+      if (isFiltering) {
+        setTotalItems(assets.length);
+        setTotalPages(Math.ceil(assets.length / limit));
+
+        // Slice for current page
+        const start = (page - 1) * limit;
+        paginatedAssets = assets.slice(start, start + limit);
+      } else {
+        setTotalItems(response.meta.totalItems);
+        setTotalPages(response.meta.totalPages);
+      }
 
       // Group assets by loanId
       const loanMap = new Map<string, CollateralAssetResponse[]>();
       const unlinkedAssets: CollateralAssetResponse[] = [];
 
-      for (const asset of assets) {
+      for (const asset of paginatedAssets) {
         if (asset.loanId) {
           if (!loanMap.has(asset.loanId)) {
             loanMap.set(asset.loanId, []);
@@ -158,8 +191,6 @@ const AssetPage = () => {
       });
 
       setLoansWithAssets(loansData);
-      setTotalItems(response.meta.totalItems);
-      setTotalPages(response.meta.totalPages);
     } catch (e) {
       console.error(e);
     } finally {
@@ -414,8 +445,8 @@ const AssetPage = () => {
         </div>
 
         {/* Filter Section */}
-        <div className="bg-white p-4 rounded-xl border shadow-sm mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white p-4 rounded-xl border shadow-sm mb-6 overflow-x-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-[300px] md:min-w-0">
             <div className="space-y-2">
               <Label>Trạng thái</Label>
               <Select
@@ -466,7 +497,7 @@ const AssetPage = () => {
         </div>
 
         {/* Loans with Assets List */}
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>

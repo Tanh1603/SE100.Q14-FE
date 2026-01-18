@@ -23,13 +23,18 @@ const ReportsPage = () => {
         </div>
 
         <Tabs defaultValue="police-book" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="police-book">Sổ quản lý ANTT</TabsTrigger>
-            <TabsTrigger value="quarterly">Báo cáo Quý (ĐK13)</TabsTrigger>
-            <TabsTrigger value="revenue" disabled={!isManagerOrAdmin(userRole)}>
-              Báo cáo doanh thu
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 min-w-[500px]">
+              <TabsTrigger value="police-book">Sổ quản lý ANTT</TabsTrigger>
+              <TabsTrigger value="quarterly">Báo cáo Quý (ĐK13)</TabsTrigger>
+              <TabsTrigger
+                value="revenue"
+                disabled={!isManagerOrAdmin(userRole)}
+              >
+                Báo cáo doanh thu
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="police-book">
             <PoliceBookTab />

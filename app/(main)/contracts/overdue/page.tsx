@@ -50,7 +50,7 @@ const OverdueContractPage = () => {
         page,
         limit,
         searchTerm,
-        "OVERDUE"
+        "OVERDUE",
       );
       setLoans(response.data);
       setTotalItems(response.meta.totalItems);
@@ -92,14 +92,14 @@ const OverdueContractPage = () => {
 
     window.addEventListener(
       "debt-reminder",
-      handleDebtReminder as EventListener
+      handleDebtReminder as EventListener,
     );
     window.addEventListener("quick-pay", handleQuickPay as EventListener);
 
     return () => {
       window.removeEventListener(
         "debt-reminder",
-        handleDebtReminder as EventListener
+        handleDebtReminder as EventListener,
       );
       window.removeEventListener("quick-pay", handleQuickPay as EventListener);
     };
@@ -136,8 +136,8 @@ const OverdueContractPage = () => {
         </div>
 
         {/* Filter */}
-        <div className="flex flex-col gap-4 p-5 bg-white rounded-xl shadow-sm border">
-          <div className="flex gap-4 items-end">
+        <div className="flex flex-col gap-4 p-5 bg-white rounded-xl shadow-sm border overflow-x-auto">
+          <div className="flex gap-4 items-end min-w-[400px] md:min-w-0">
             <div className="flex flex-col gap-2 w-full md:w-1/3">
               <Label className="font-medium text-sm">Tìm kiếm</Label>
               <div className="flex gap-2">
@@ -158,7 +158,7 @@ const OverdueContractPage = () => {
         </div>
 
         {/* Table */}
-        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-x-auto">
           <div className="flex flex-wrap gap-3 mb-5 justify-between">
             <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
               Tổng số:{" "}

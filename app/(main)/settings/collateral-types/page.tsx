@@ -21,18 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { toast } from "sonner";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export default function CollateralTypePage() {
   const [types, setTypes] = useState<CollateralType[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<CollateralType | null>(null);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [custodyFeeRateMonthly, setCustodyFeeRateMonthly] = useState<number>(0);
@@ -93,6 +92,8 @@ export default function CollateralTypePage() {
     }
   };
 
+  {
+    /* 
   const handleDelete = async (id: number) => {
      if(!confirm("Bạn có chắc chắn muốn xóa?")) return;
      try {
@@ -102,6 +103,8 @@ export default function CollateralTypePage() {
      } catch (_e) {
          toast.error("Không thể xóa (có thể đang được sử dụng)");
      }
+  } 
+  */
   }
 
   return (
@@ -131,9 +134,20 @@ export default function CollateralTypePage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-               <TableRow><TableCell colSpan={5} className="text-center py-8">Đang tải...</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  Đang tải...
+                </TableCell>
+              </TableRow>
             ) : types.length === 0 ? (
-               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chưa có dữ liệu</TableCell></TableRow>
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  Chưa có dữ liệu
+                </TableCell>
+              </TableRow>
             ) : (
               types.map((t) => (
                 <TableRow key={t.id}>
@@ -146,12 +160,16 @@ export default function CollateralTypePage() {
                     <Badge variant="secondary">{t.totalCollaterals || 0}</Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenEdit(t)}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(t.id)}>
+                    {/* <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(t.id)}>
                         <Trash2 className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                   </TableCell>
                 </TableRow>
               ))
@@ -163,28 +181,47 @@ export default function CollateralTypePage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingType ? "Cập nhật loại tài sản" : "Thêm loại tài sản mới"}</DialogTitle>
+            <DialogTitle>
+              {editingType ? "Cập nhật loại tài sản" : "Thêm loại tài sản mới"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Tên loại tài sản <span className="text-red-500">*</span></Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Xe máy" />
+              <Label>
+                Tên loại tài sản <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ví dụ: Xe máy"
+              />
             </div>
             <div className="space-y-2">
-              <Label>Phí lưu kho hàng tháng (%) <span className="text-red-500">*</span></Label>
-              <Input 
-                type="number" 
+              <Label>
+                Phí lưu kho hàng tháng (%){" "}
+                <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
                 step="0.01"
-                value={custodyFeeRateMonthly * 100} 
-                onChange={(e) => setCustodyFeeRateMonthly(Number(e.target.value) / 100)} 
-                placeholder="Ví dụ: 1.5" 
+                value={custodyFeeRateMonthly * 100}
+                onChange={(e) =>
+                  setCustodyFeeRateMonthly(Number(e.target.value) / 100)
+                }
+                placeholder="Ví dụ: 1.5"
               />
-              <p className="text-[10px] text-muted-foreground">Nhập giá trị phần trăm (Ví dụ: 1 cho 1%)</p>
+              <p className="text-[10px] text-muted-foreground">
+                Nhập giá trị phần trăm (Ví dụ: 1 cho 1%)
+              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleSubmit} disabled={!name}>Lưu</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSubmit} disabled={!name}>
+              Lưu
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

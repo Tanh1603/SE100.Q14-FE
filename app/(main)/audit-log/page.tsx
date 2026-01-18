@@ -15,10 +15,8 @@ import { AuditLogJsonDiff } from "./audit-log-table";
 import { AuditLogColumn } from "./columns";
 
 const Page = () => {
-
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
-
 
   // query
   const searchParams = useSearchParams();
@@ -59,10 +57,8 @@ const Page = () => {
       </div>
 
       {/* Filter */}
-      <div className="flex justify-between items-center pt-2 px-5 pb-5 bg-white rounded-xl">
-        <div className="flex gap-x-10 flex-wrap">
-
-
+      <div className="flex flex-col md:flex-row justify-between md:items-center pt-2 px-5 pb-5 bg-white rounded-xl gap-4">
+        <div className="flex gap-x-10 flex-wrap overflow-x-auto pb-2 md:pb-0">
           <div className="flex flex-col gap-y-2 min-w-[200px]">
             <Label>Từ ngày</Label>
             <Input
@@ -124,7 +120,10 @@ const Page = () => {
         open={openDialog}
         onOpenChange={() => setOpenDialog(false)}
       >
-        <AuditLogJsonDiff oldValue={selectedLog?.oldValue} newValue={selectedLog?.newValue} />
+        <AuditLogJsonDiff
+          oldValue={selectedLog?.oldValue}
+          newValue={selectedLog?.newValue}
+        />
       </AppDialog>
     </div>
   );

@@ -24,7 +24,7 @@ import { getLoanStatusLabel } from "@/lib/format.helper";
 
 const PoliceBookTab = () => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [storeId, setStoreId] = useState<string>("");
+  const [storeId, setStoreId] = useState<string>("__all__");
   // We store the RAW response for the table (optional) or just use enriched for everything
   // Let's use enriched for everything for consistency
   const [data, setData] = useState<{

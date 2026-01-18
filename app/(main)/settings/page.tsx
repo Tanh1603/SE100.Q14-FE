@@ -19,22 +19,24 @@ const SettingPage = () => {
       </div>
 
       <Tabs defaultValue="assets" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start border-b rounded-none p-0 h-auto bg-transparent mb-6 space-x-6">
-          <TabsTrigger
-            value="assets"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:text-purple-700 data-[state=active]:shadow-none px-4 py-2"
-          >
-            <Box className="w-4 h-4 mr-2" />
-            Cấu hình Tài sản
-          </TabsTrigger>
-          <TabsTrigger
-            value="warehouses"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-700 data-[state=active]:shadow-none px-4 py-2"
-          >
-            <MapPin className="w-4 h-4 mr-2" />
-            Kho lưu trữ
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto mb-6">
+          <TabsList className="w-full justify-start border-b rounded-none p-0 h-auto bg-transparent space-x-6 min-w-[400px]">
+            <TabsTrigger
+              value="assets"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:text-purple-700 data-[state=active]:shadow-none px-4 py-2"
+            >
+              <Box className="w-4 h-4 mr-2" />
+              Cấu hình Tài sản
+            </TabsTrigger>
+            <TabsTrigger
+              value="warehouses"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:text-green-700 data-[state=active]:shadow-none px-4 py-2"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Kho lưu trữ
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="assets" className="flex-1 mt-0 outline-none">
           <AssetConfigTab />

@@ -52,7 +52,6 @@ const StaffPage = () => {
   //   return <Loading />;
   // }
 
-
   return (
     // Removed SidebarInset wrapper
     <div className="pb-10">
@@ -91,7 +90,7 @@ const StaffPage = () => {
 
         {/* Table - Responsive */}
 
-        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-x-auto">
           <div className="flex flex-wrap gap-3 mb-5">
             <Button onClick={() => setOpenDialog(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />

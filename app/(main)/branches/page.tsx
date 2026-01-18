@@ -4,7 +4,14 @@ import { DataTable } from "@/components/data-table";
 import { AppPagination } from "@/components/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { useBranch } from "@/hooks/use-branch";
 import { Branch } from "@/types/branch";
@@ -35,13 +42,11 @@ const Page = () => {
   // selected branch
   const [selectedBranch, setSelectedBranch] = useState<Branch | undefined>();
 
-
   const { data: branch, isLoading: branchLoading } = useBranch({
     page,
     search,
     isActive,
   });
-
 
   // if (branchLoading) {
   //   return <Loading />
@@ -56,12 +61,13 @@ const Page = () => {
         </div>
 
         {/* Fillter */}
-        <div className="flex justify-between items-center pt-2 px-5 pb-5 bg-white rounded-xl ">
-          <div className="flex gap-x-10">
+        <div className="flex flex-col md:flex-row justify-between md:items-center pt-2 px-5 pb-5 bg-white rounded-xl gap-4">
+          <div className="flex gap-x-10 overflow-x-auto pb-2 md:pb-0">
             <div className="flex flex-col gap-y-2 min-w-[300px]">
               <Label>Tìm kiếm</Label>
-              <Input value={keyword}
-                onChange={e => setKeyword(e.target.value)}
+              <Input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Nhập tên chi nhánh, địa chỉ"
               />
             </div>
@@ -95,17 +101,19 @@ const Page = () => {
                 search: keyword,
                 page: "1",
               });
-            }}>
+            }}
+          >
             <Search />
             Tìm kiếm
           </Button>
         </div>
 
         {/* Table */}
-        {branchLoading ? <Loading /> : (
-
+        {branchLoading ? (
+          <Loading />
+        ) : (
           <div className="mt-2 pt-2 px-5 pb-2 bg-white rounded-xl">
-            <div className="flex gap-x-5">
+            <div className="flex flex-wrap gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -117,19 +125,25 @@ const Page = () => {
                 Thêm mới
               </Button>
 
-              <Button disabled={!selectedBranch} onClick={() => {
-                setOpenDialog(selectedBranch !== undefined);
-              }}>
+              <Button
+                disabled={!selectedBranch}
+                onClick={() => {
+                  setOpenDialog(selectedBranch !== undefined);
+                }}
+              >
                 <Edit />
                 Sửa
               </Button>
             </div>
 
             <div className="mt-5">
-              <DataTable columns={BranchColumn} data={branch?.data ?? []}
+              <DataTable
+                columns={BranchColumn}
+                data={branch?.data ?? []}
                 onRowClick={(row) => {
                   setSelectedBranch(row);
-                }} />
+                }}
+              />
             </div>
           </div>
         )}
@@ -146,14 +160,14 @@ const Page = () => {
         title={selectedBranch ? "Sửa đổi chi nhánh" : "Thêm chi nhánh mới"}
         open={openDialog}
         onOpenChange={() => {
-          setOpenDialog(false)
+          setOpenDialog(false);
           setSelectedBranch(undefined);
         }}
         contentClassName="sm:max-w-4xl"
       >
         <BranchForm
           onCloseForm={() => {
-            setOpenDialog(false)
+            setOpenDialog(false);
             setSelectedBranch(undefined);
           }}
           initial={{
@@ -164,7 +178,8 @@ const Page = () => {
             address: selectedBranch?.address ?? "",
             phone: selectedBranch?.phone ?? "",
             isActive: selectedBranch?.isActive ?? false,
-          }} />
+          }}
+        />
       </AppDialog>
     </SidebarInset>
   );

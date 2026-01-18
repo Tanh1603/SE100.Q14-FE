@@ -40,9 +40,9 @@ export function DataTable<TData extends { id: string }, TValue>({
   });
 
   return (
-    <div className="rounded-md border overflow-hidden">
+    <div className="rounded-md border overflow-x-auto">
       {/* TABLE HEADER */}
-      <Table className="w-full table-fixed">
+      <Table className="w-full min-w-max">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
@@ -54,9 +54,9 @@ export function DataTable<TData extends { id: string }, TValue>({
                   {header.isPlaceholder
                     ? null
                     : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -66,7 +66,7 @@ export function DataTable<TData extends { id: string }, TValue>({
 
       {/* TABLE BODY SCROLL */}
       <ScrollArea className="h-[290px]">
-        <Table className="w-full table-fixed">
+        <Table className="w-full min-w-max">
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
@@ -81,13 +81,10 @@ export function DataTable<TData extends { id: string }, TValue>({
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="truncate"
-                    >
+                    <TableCell key={cell.id} className="whitespace-nowrap">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -107,8 +104,8 @@ export function DataTable<TData extends { id: string }, TValue>({
         </Table>
 
         <ScrollBar orientation="vertical" />
+        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>
   );
-
 }

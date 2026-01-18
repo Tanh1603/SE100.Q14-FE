@@ -107,7 +107,18 @@ export const LoanService = {
   > => {
     const response = await apiClient.get<{
       data: import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[];
-    }>(`${ENDPOINTS.LOANS}/${loanId}/repayment-schedule`);
+    }>(`${ENDPOINTS.REPAYMENT_SCHEDULES}/loans/${loanId}`);
+    return response.data.data;
+  },
+
+  generateRepaymentSchedule: async (
+    loanId: string,
+  ): Promise<
+    import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[]
+  > => {
+    const response = await apiClient.post<{
+      data: import("@/types/dto/repayment.dto").RepaymentScheduleItemResponse[];
+    }>(`${ENDPOINTS.REPAYMENT_SCHEDULES}/loans/${loanId}`);
     return response.data.data;
   },
 
@@ -135,7 +146,24 @@ export const LoanService = {
       JSON.stringify(data, null, 2),
     );
     const response = await apiClient.post<{ data: any }>(ENDPOINTS.LOANS, data);
-    return response.data.data;
+    const createdLoan = response.data.data;
+
+    // Generate repayment schedule for the newly created loan
+    try {
+      await LoanService.generateRepaymentSchedule(createdLoan.id);
+      console.log(
+        "LoanService.createLoan - Repayment schedule generated for loan:",
+        createdLoan.id,
+      );
+    } catch (error) {
+      console.error(
+        "LoanService.createLoan - Failed to generate repayment schedule:",
+        error,
+      );
+      // Don't throw - loan was created successfully, schedule generation is secondary
+    }
+
+    return createdLoan;
   },
 
   updateStatus: async (

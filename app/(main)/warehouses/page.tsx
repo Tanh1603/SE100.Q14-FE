@@ -32,8 +32,8 @@ const Page = () => {
         </div>
 
         {/* Fillter */}
-        <div className="flex justify-between items-center pt-2 px-5 pb-5 bg-white rounded-xl ">
-          <div className="flex gap-x-10">
+        <div className="flex flex-col md:flex-row justify-between md:items-center pt-2 px-5 pb-5 bg-white rounded-xl gap-4">
+          <div className="flex gap-x-10 overflow-x-auto pb-2 md:pb-0">
             <div className="flex flex-col gap-y-2 min-w-[300px]">
               <Label>Tìm kiếm</Label>
               <Input placeholder="Nhập tên kho" />
@@ -71,7 +71,7 @@ const Page = () => {
 
         {/* Table */}
         <div className="mt-2 pt-2 px-5 pb-2 bg-white rounded-xl">
-          <div className="flex gap-x-5">
+          <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
               onClick={() => {

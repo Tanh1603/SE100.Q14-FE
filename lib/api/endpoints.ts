@@ -21,6 +21,7 @@ export const ENDPOINTS = {
   COLLATERAL_ASSETS: "/collateral-assets",
   ASSET_EVALUATIONS: "/asset-evaluations",
   LIQUIDATIONS: "/liquidations",
+  REPAYMENT_SCHEDULES: "/repayment-schedules",
   REPAYMENT_SCHEDULES_OVERDUE: "/loans/overdue",
   COMMUNICATIONS_LOG: "/communications/log",
   COMMUNICATIONS_PROMISES_TO_PAY: "/communications/promises-to-pay",

@@ -303,8 +303,8 @@ const ContractPage = () => {
         </div>
 
         {/* Filter - Minimalist Design */}
-        <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-center">
+        <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 items-center min-w-[800px] lg:min-w-0">
             {/* Search - Spans 4 columns */}
             <div className="lg:col-span-4 relative">
               <Input
@@ -437,7 +437,7 @@ const ContractPage = () => {
         </div>
 
         {/* Table - Responsive Container */}
-        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-x-auto">
           <div className="flex flex-wrap gap-3 mb-5 justify-between">
             <div className="flex gap-3">
               <Link href="/contracts/create">
