@@ -84,7 +84,7 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
   // handle locations
 
   // handle branches
-  const { data: branches = [], isLoading: branchLoading } = useBranch();
+  const { data: branches, isLoading: branchLoading } = useBranch({});
   const { mutateAsync, isPending } = useCreateStaff();
 
   // handle submit
@@ -94,7 +94,7 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
         toast.success("Thêm mới nhân viên thành công!");
       },
       onError: (error) => {
-        toast.success("Thêm mới nhân viên thất bại!", {
+        toast.error("Thêm mới nhân viên thất bại!", {
           description: error.message,
         });
       },
@@ -111,7 +111,7 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
       isLoaded &&
       user?.publicMetadata?.storeId &&
       !branchLoading &&
-      branches.length > 0
+      Array.isArray(branches) && branches.length > 0
     ) {
       form.setValue("storeId", user?.publicMetadata?.storeId as string, {
         shouldValidate: true,
@@ -119,16 +119,9 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
         shouldTouch: true,
       });
       form.trigger("storeId");
-      console.log();
+      // Removed unnecessary console.log();
     }
-  }, [
-    isManager,
-    user?.publicMetadata?.storeId,
-    form,
-    branchLoading,
-    branches.length,
-    isLoaded,
-  ]);
+  }, [isManager, user?.publicMetadata?.storeId, form, branchLoading, isLoaded, branches]);
 
   return (
     <Form {...form}>
@@ -398,7 +391,7 @@ const StaffForm = ({ initialStaff, onCloseForm }: StaffFormProps) => {
                                   <Spinner />
                                 </SelectItem>
                               ) : (
-                                branches?.map((item) => (
+                                branches?.data?.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
                                     {item.name}
                                   </SelectItem>

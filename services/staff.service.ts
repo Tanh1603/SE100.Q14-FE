@@ -11,7 +11,7 @@ export const staffKeys = {
 export const StaffService = {
   list: async (token: string, query: string): Promise<PageResonse<Staff[]>> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/employees?${query}&limit=2`, {
+      const res = await fetch(`${API_BASE_URL}/employees?${query}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

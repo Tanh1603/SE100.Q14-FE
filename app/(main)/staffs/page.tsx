@@ -51,7 +51,6 @@ const StaffPage = () => {
   //   return <Loading />;
   // }
 
-  console.log(staffs?.data);
 
   return (
     // Removed SidebarInset wrapper

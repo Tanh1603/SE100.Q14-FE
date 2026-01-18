@@ -4,10 +4,10 @@
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
 import {
   Form,
@@ -24,40 +24,83 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
-import { mockLocations } from "@/mock-data/location";
+import { Spinner } from "@/components/ui/spinner";
+import { useCreateBranch, useUpdateBranch } from "@/hooks/use-branch";
+import { useProvinces, useWardByProvince } from "@/hooks/use-location";
+import { BranchFormSchema, BranchFormValues } from "@/types/branch";
 import { BRANCH_STATUS_OPTIONS, BranchStatus } from "@/types/enum";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { IdCard } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 type BranchFormProps = {
-  initial?: FormState | undefined | null;
+  initial?: BranchFormValues & { id: string } | undefined | null;
+  onCloseForm: () => void;
 };
 
-type FormState = {
-  id: string;
-  name: string;
-  phone: string;
-  address: string;
-  provinceId: string;
-  wardId: string;
-  status: BranchStatus;
-};
 
-const BranchForm = ({ initial }: BranchFormProps) => {
-  const form = useForm<FormState>({
-    defaultValues: initial || undefined,
+
+const EMPTY_BRANCH: BranchFormValues = {
+  name: "",
+  wardId: "",
+  phone: "",
+  provinceId: "",
+  address: "",
+  isActive: true,
+}
+
+const BranchForm = ({ initial, onCloseForm }: BranchFormProps) => {
+  const form = useForm<BranchFormValues>({
+    resolver: zodResolver(BranchFormSchema),
+    defaultValues: initial || EMPTY_BRANCH,
+    mode: "onChange",
   });
 
-  const onSubmit = (data: FormState) => {
-    console.log(data);
+  const { mutateAsync: createBranch, isPending: createBranchPending } = useCreateBranch();
+  const { mutateAsync: updateBranch, isPending: updateBranchPending } = useUpdateBranch()
+
+  const onSubmit = async (data: BranchFormValues) => {
+    if (initial && initial.id) {
+      await updateBranch(
+        { ...data, id: initial.id, isActive: data.isActive ?? true },
+        {
+          onSuccess: () => {
+            toast.success("Cập nhật chi nhánh thành công!");
+            onCloseForm();
+          },
+          onError: (error) => {
+            toast.error("Thêm mới chi nhánh thất bại!", {
+              description: error.message,
+            });
+          },
+        });
+    }
+    else {
+      await createBranch(data, {
+        onSuccess: () => {
+          toast.success("Thêm mới chi nhánh thành công!");
+          onCloseForm();
+        },
+        onError: (error) => {
+          toast.error("Thêm mới chi nhánh thất bại!", {
+            description: error.message,
+          });
+        },
+      });
+    }
+
   };
 
+  const { data: provinces = [], isLoading: provinceLoading } = useProvinces();
   const provinceId = form.watch("provinceId");
-  const selectedProvince = mockLocations.find((p) => p.id === provinceId);
-  const wards = selectedProvince?.wards ?? [];
+  const selectedProvince = provinces?.find((p) => p.id === provinceId);
+  const provinceCode = selectedProvince?.code ?? "";
+  const { data: wards = [], isLoading: wardsLoading } =
+    useWardByProvince(provinceCode);
 
   return (
     <Form {...form}>
@@ -83,7 +126,9 @@ const BranchForm = ({ initial }: BranchFormProps) => {
                     <FormControl>
                       <Input placeholder="Nhập tên chi nhánh" {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <div className="min-h-[20px]">
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -99,6 +144,9 @@ const BranchForm = ({ initial }: BranchFormProps) => {
                     <FormControl>
                       <Input placeholder="Nhập địa chỉ chi nhánh" {...field} />
                     </FormControl>
+                    <div className="min-h-[20px]">
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -108,30 +156,41 @@ const BranchForm = ({ initial }: BranchFormProps) => {
                 name="provinceId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">
-                      Tỉnh/Thành phố<span className="text-red-500">*</span>
+                    <FormLabel>
+                      Tỉnh/Thành phố
+                      <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <Select
                         value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          form.setValue("wardId", "");
-                        }}
+                        onValueChange={field.onChange}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn tỉnh / thành phố" />
+                          <SelectValue placeholder="Chọn Tỉnh/Thành" />
                         </SelectTrigger>
 
-                        <SelectContent>
-                          {mockLocations.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {item.label}
+                        <SelectContent className="h-[200px]">
+                          {provinceLoading ? (
+                            <SelectItem
+                              className="flex items-center justify-center h-full"
+                              value="loading"
+                              disabled
+                            >
+                              <Spinner />
                             </SelectItem>
-                          ))}
+                          ) : (
+                            provinces?.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    <div className="min-h-[20px]">
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -141,7 +200,7 @@ const BranchForm = ({ initial }: BranchFormProps) => {
                 name="wardId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm">
+                    <FormLabel>
                       Phường/Xã<span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
@@ -151,57 +210,98 @@ const BranchForm = ({ initial }: BranchFormProps) => {
                         disabled={!provinceId}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn phường / xã" />
+                          <SelectValue placeholder="Chọn Phường/Xã" />
                         </SelectTrigger>
 
-                        <SelectContent>
-                          {wards.map((w) => (
-                            <SelectItem key={w.id} value={w.id}>
-                              {w.label}
+                        <SelectContent className="h-[200px]">
+                          {wardsLoading ? (
+                            <SelectItem
+                              className="flex items-center justify-center h-full"
+                              value="loading"
+                              disabled
+                            >
+                              <Spinner />
                             </SelectItem>
-                          ))}
+                          ) : (
+                            wards?.map((w) => (
+                              <SelectItem key={w.id} value={w.id}>
+                                {w.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </FormControl>
+                    <div className="min-h-[20px]">
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
 
               <FormField
                 control={form.control}
-                name="status"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Tình trạng<span className="text-red-500">*</span>
+                      Số điện thoại<span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Select value={field.value}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Tình trạng" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {BRANCH_STATUS_OPTIONS.map((item, index) => (
-                              <SelectItem key={index} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <Input placeholder="Nhập số điện thoại" {...field} />
                     </FormControl>
-                    <FormMessage />
+                    <div className="min-h-[20px]">
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
+
+              {
+                initial?.id && (
+
+                  <FormField
+                    control={form.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Tình trạng<span className="text-red-500">*</span>
+                        </FormLabel>
+                        <Select
+                          value={field.value ? BranchStatus.ACTIVE : BranchStatus.CLOSE}
+                          onValueChange={(value) => {
+                            field.onChange(value === BranchStatus.ACTIVE);
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Tình trạng" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {BRANCH_STATUS_OPTIONS.map((item, index) => (
+                                <SelectItem key={index} value={item.value}>
+                                  {item.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <div className="min-h-[20px]">
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )
+              }
             </div>
           </CardContent>
         </Card>
 
         {/* </div> */}
         <div className="flex justify-end">
-          <Button type="submit">Xác nhận</Button>
+          <Button type="submit">{(createBranchPending || updateBranchPending) ? <Spinner /> : "Xác nhận"}</Button>
         </div>
       </form>
     </Form>
