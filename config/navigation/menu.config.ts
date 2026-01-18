@@ -15,6 +15,7 @@ import {
   Settings,
   Tags,
   Banknote,
+  History,
 } from "lucide-react";
 
 export type MenuIcon =
@@ -31,7 +32,8 @@ export type MenuIcon =
   | "branch"
   | "warehouse"
   | "settings"
-  | "collateral-type";
+  | "collateral-type"
+  | "history";
 
 export interface MenuItem {
   title: string;
@@ -65,6 +67,7 @@ export const iconMap = {
   warehouse: Warehouse,
   settings: Settings,
   "collateral-type": Tags,
+  history: History,
 };
 
 export const menuConfig: MenuItem[] = [
@@ -169,6 +172,13 @@ export const menuConfig: MenuItem[] = [
     href: "/settings/collateral-types",
     icon: "collateral-type",
     roles: [Role.ADMIN, Role.MANAGER],
+  },
+
+  {
+    title: "Nhật ký hoạt động",
+    href: "/audit-log",
+    icon: "history",
+    roles: [Role.ADMIN],
   },
 
   // Settings
