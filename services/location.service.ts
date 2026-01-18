@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Location } from "@/types/location";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;

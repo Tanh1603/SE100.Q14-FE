@@ -151,12 +151,12 @@ export const menuConfig: MenuItem[] = [
   },
 
   //
-  {
-    title: "Quản lý kho",
-    href: "/warehouses",
-    icon: "warehouse",
-    roles: [Role.ADMIN],
-  },
+  // {
+  //   title: "Quản lý kho",
+  //   href: "/warehouses",
+  //   icon: "warehouse",
+  //   roles: [Role.ADMIN],
+  // },
 
   //
   {
