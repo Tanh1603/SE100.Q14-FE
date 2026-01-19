@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +53,8 @@ import {
 } from "@/types/dto/communication.dto";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { getUserRole, isManagerOrAdmin } from "@/lib/role.helper";
 
 interface StatusAwareActionPanelProps {
   loan: LoanDetailDTO;
@@ -65,6 +66,10 @@ export function StatusAwareActionPanel({
   onRefresh,
 }: StatusAwareActionPanelProps) {
   const router = useRouter();
+  const { user } = useUser();
+  const role = getUserRole(user);
+  const canApproveReject = isManagerOrAdmin(role);
+
   const [isPayOpen, setIsPayOpen] = useState(false);
   const [isCommOpen, setIsCommOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -253,10 +258,12 @@ export function StatusAwareActionPanel({
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Badge className="bg-yellow-500 text-white">Chờ duyệt</Badge>
-          Thao tác duyệt hồ sơ
+          {canApproveReject ? "Thao tác duyệt hồ sơ" : "Thao tác nhanh"}
         </CardTitle>
         <CardDescription>
-          Xem xét và phê duyệt hoặc từ chối khoản vay này
+          {canApproveReject
+            ? "Xem xét và phê duyệt hoặc từ chối khoản vay này"
+            : "Chỉ Quản lý mới có thể duyệt hoặc từ chối khoản vay"}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-4">
@@ -267,27 +274,31 @@ export function StatusAwareActionPanel({
           <Edit className="h-4 w-4" />
           Sửa hồ sơ
         </Button>
-        <Button
-          className="flex-1 min-w-[150px] gap-2 bg-green-600 hover:bg-green-700 text-white"
-          onClick={handleApproveLoan}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4" />
-          )}
-          Duyệt khoản vay
-        </Button>
-        <Button
-          variant="destructive"
-          className="flex-1 min-w-[150px] gap-2"
-          onClick={handleRejectLoan}
-          disabled={isProcessing}
-        >
-          <X className="h-4 w-4" />
-          Từ chối
-        </Button>
+        {canApproveReject && (
+          <>
+            <Button
+              className="flex-1 min-w-[150px] gap-2 bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleApproveLoan}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              Duyệt khoản vay
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1 min-w-[150px] gap-2"
+              onClick={handleRejectLoan}
+              disabled={isProcessing}
+            >
+              <X className="h-4 w-4" />
+              Từ chối
+            </Button>
+          </>
+        )}
 
         <EditPendingLoanDialog
           open={isEditOpen}
