@@ -201,7 +201,7 @@ export const LoanService = {
       "LoanService.updateLoan - Sending payload:",
       JSON.stringify(data, null, 2),
     );
-    const response = await apiClient.put<{ data: any }>(
+    const response = await apiClient.patch<{ data: any }>(
       `${ENDPOINTS.LOANS}/${id}`,
       data,
     );
