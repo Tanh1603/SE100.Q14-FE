@@ -36,7 +36,7 @@ export const LoanAdapter: BaseAdapter<loan, LoanDTO> = {
 
     return {
       id: dto.id,
-      loanDate: dto.startDate,
+      loanDate: dto.startDate || dto.createdAt,
       totalLoan: dto.loanAmount,
       interestPeriod: dto.durationMonths,
       interestRate: dto.appliedInterestRate || 0,
@@ -79,7 +79,7 @@ export const LoanSummaryAdapter: BaseAdapter<
   LoanSummaryResponseDto
 > = {
   toDomain(
-    dto: LoanSummaryResponseDto
+    dto: LoanSummaryResponseDto,
   ): loan & { contractNumber: string; status: string } {
     // Map status
     // API Status: PENDING, REJECTED, ACTIVE, CLOSED, OVERDUE
@@ -112,7 +112,7 @@ export const LoanSummaryAdapter: BaseAdapter<
 
     return {
       id: dto.id,
-      loanDate: dto.startDate,
+      loanDate: dto.startDate || dto.createdAt,
       totalLoan: dto.loanAmount,
       interestPeriod: dto.durationMonths,
       interestRate: dto.appliedInterestRate || 0,

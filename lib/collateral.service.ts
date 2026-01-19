@@ -110,7 +110,8 @@ export const CollateralService = {
     const response = await apiClient.get(
       `${ENDPOINTS.COLLATERAL_ASSETS}/${id}`,
     );
-    return response.data;
+    // API returns { data: { ... } }, so unwrap it
+    return response.data?.data || response.data;
   },
 
   update: async (
