@@ -76,7 +76,7 @@ export const menuConfig: MenuItem[] = [
     title: "Trang chủ",
     href: "/home",
     icon: "home",
-    roles: [Role.ADMIN, Role.MANAGER],
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
     isActive: true,
   },
 
@@ -106,7 +106,7 @@ export const menuConfig: MenuItem[] = [
     title: "Hợp đồng quá hạn",
     href: "/contracts/overdue",
     icon: "contracts-overdue",
-    roles: [Role.ADMIN, Role.MANAGER],
+    roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
   },
 
   // Customers

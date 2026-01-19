@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Check, X, Eye, Package, Edit } from "lucide-react";
 import { loan } from "@/types/asset";
 import { LoanStatus } from "@/types/enum";
+import { Role } from "@/types/constant";
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +32,7 @@ interface LoanManagementColumnsProps {
   onReject: (loan: EnrichedLoan) => void;
   onView: (loan: EnrichedLoan) => void;
   onEdit: (loan: EnrichedLoan) => void;
+  userRole?: Role; // Add user role for permission checks
 }
 
 // Format currency helper
@@ -45,6 +47,7 @@ export const getLoanColumns = ({
   onReject,
   onView,
   onEdit,
+  userRole,
 }: LoanManagementColumnsProps): ColumnDef<EnrichedLoan>[] => [
   {
     accessorKey: "contractNumber",
@@ -238,6 +241,9 @@ export const getLoanColumns = ({
     cell: ({ row }) => {
       const status = row.original.loanStatus || "PENDING";
       const isPending = status === LoanStatus.PENDING;
+      // Only ADMIN and MANAGER can approve/reject loans
+      const canApproveReject =
+        userRole === Role.ADMIN || userRole === Role.MANAGER;
 
       return (
         <div className="flex items-center gap-2">
@@ -258,21 +264,25 @@ export const getLoanColumns = ({
               >
                 <Edit className="w-4 h-4 mr-1" /> Sửa hồ sơ
               </Button>
-              <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white h-8 px-2"
-                onClick={() => onApprove(row.original)}
-              >
-                <Check className="w-4 h-4 mr-1" /> Duyệt
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="h-8 px-2"
-                onClick={() => onReject(row.original)}
-              >
-                <X className="w-4 h-4 mr-1" /> Từ chối
-              </Button>
+              {canApproveReject && (
+                <>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white h-8 px-2"
+                    onClick={() => onApprove(row.original)}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Duyệt
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-8 px-2"
+                    onClick={() => onReject(row.original)}
+                  >
+                    <X className="w-4 h-4 mr-1" /> Từ chối
+                  </Button>
+                </>
+              )}
             </>
           )}
         </div>

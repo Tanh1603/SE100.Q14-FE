@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-table";
 
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -40,33 +39,28 @@ export function DataTable<TData extends { id: string }, TValue>({
   });
 
   return (
-    <div className="rounded-md border overflow-x-auto">
-      {/* TABLE HEADER */}
-      <Table className="w-full min-w-max">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="bg-primary hover:bg-primary"
-            >
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-white">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-      </Table>
-
-      {/* TABLE BODY SCROLL */}
-      <ScrollArea className="h-[290px]">
-        <Table className="w-full min-w-max">
+    <div className="rounded-md border overflow-hidden relative">
+      <ScrollArea className="h-[290px] w-full">
+        <table className="w-full caption-bottom text-sm min-w-max">
+          <TableHeader className="sticky top-0 z-10 bg-primary">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow
+                key={headerGroup.id}
+                className="bg-primary hover:bg-primary"
+              >
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="text-white">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
@@ -101,10 +95,9 @@ export function DataTable<TData extends { id: string }, TValue>({
               </TableRow>
             )}
           </TableBody>
-        </Table>
-
-        <ScrollBar orientation="vertical" />
+        </table>
         <ScrollBar orientation="horizontal" />
+        <ScrollBar orientation="vertical" />
       </ScrollArea>
     </div>
   );

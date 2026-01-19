@@ -227,6 +227,7 @@ export default function LoanManagementPage() {
     onReject: handleReject,
     onView: handleView,
     onEdit: handleEdit,
+    userRole: getUserRole(user?.publicMetadata),
   });
 
   return (

@@ -105,7 +105,17 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+import { useUser } from "@clerk/nextjs";
+import { getUserRole } from "@/lib/role.helper";
+import { Role } from "@/types/constant";
+
 const LoanActions = ({ row }: { row: any }) => {
+  const { user } = useUser();
+  const userRole = getUserRole(user?.publicMetadata);
+
+  // Only ADMIN and MANAGER can approve/reject loans
+  const canApproveReject = userRole === Role.ADMIN || userRole === Role.MANAGER;
+
   // Get the loan status
   const rawStatus = (row.original as any).status || row.original.asset?.status;
   const isActiveLoan = rawStatus === "ACTIVE";
@@ -113,7 +123,7 @@ const LoanActions = ({ row }: { row: any }) => {
   const isPendingLoan = rawStatus === "PENDING";
   const showPaymentActions = isActiveLoan || isOverdueLoan;
 
-  // PENDING loans - show approve/reject/edit buttons
+  // PENDING loans - show approve/reject/edit buttons (approve/reject only for ADMIN/MANAGER)
   if (isPendingLoan) {
     return (
       <div className="flex items-center gap-2">
@@ -143,39 +153,43 @@ const LoanActions = ({ row }: { row: any }) => {
         >
           <Edit className="w-4 h-4 mr-1" /> Sửa hồ sơ
         </Button>
-        <Button
-          size="sm"
-          className="h-8 bg-green-600 hover:bg-green-700 text-white"
-          onClick={() => {
-            const event = new CustomEvent("approve-loan", {
-              detail: {
-                loanId: row.original.id,
-                loanCode:
-                  (row.original as any).contractNumber || row.original.id,
-              },
-            });
-            window.dispatchEvent(event);
-          }}
-        >
-          <Check className="w-4 h-4 mr-1" /> Duyệt
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          className="h-8"
-          onClick={() => {
-            const event = new CustomEvent("reject-loan", {
-              detail: {
-                loanId: row.original.id,
-                loanCode:
-                  (row.original as any).contractNumber || row.original.id,
-              },
-            });
-            window.dispatchEvent(event);
-          }}
-        >
-          <X className="w-4 h-4 mr-1" /> Từ chối
-        </Button>
+        {canApproveReject && (
+          <>
+            <Button
+              size="sm"
+              className="h-8 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => {
+                const event = new CustomEvent("approve-loan", {
+                  detail: {
+                    loanId: row.original.id,
+                    loanCode:
+                      (row.original as any).contractNumber || row.original.id,
+                  },
+                });
+                window.dispatchEvent(event);
+              }}
+            >
+              <Check className="w-4 h-4 mr-1" /> Duyệt
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8"
+              onClick={() => {
+                const event = new CustomEvent("reject-loan", {
+                  detail: {
+                    loanId: row.original.id,
+                    loanCode:
+                      (row.original as any).contractNumber || row.original.id,
+                  },
+                });
+                window.dispatchEvent(event);
+              }}
+            >
+              <X className="w-4 h-4 mr-1" /> Từ chối
+            </Button>
+          </>
+        )}
       </div>
     );
   }
