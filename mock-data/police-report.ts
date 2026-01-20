@@ -1,0 +1,33 @@
+export const mockPoliceLog = [
+  {
+    id: "pl1",
+    date: "2024-01-08",
+    customerName: "Nguyen Van A",
+    cccd: "079090000001",
+    address: "123 Le Van Viet, Hiep Phu, Thu Duc",
+    assetDescription: "Xe may Honda Vision, Mau Do",
+    serialNumber: "59X1-123.45",
+    isSuspicious: false,
+  },
+  {
+    id: "pl2",
+    date: "2024-01-08",
+    customerName: "Tran Thi B",
+    cccd: "079198000002",
+    address: "456 Do Xuan Hop, Phuoc Long B, Thu Duc",
+    assetDescription: "Dien thoai iPhone 14 Pro Max",
+    serialNumber: "IMEI: 356789012345678",
+    isSuspicious: true,
+    note: "Trung khop tin bao mat cap",
+  },
+  {
+    id: "pl3",
+    date: "2024-01-08",
+    customerName: "Le Van C",
+    cccd: "079099000003",
+    address: "789 Kha Van Can, Linh Chieu, Thu Duc",
+    assetDescription: "Laptop Dell XPS 15 9500",
+    serialNumber: "SN: 8H7G6F5",
+    isSuspicious: false,
+  },
+];
