@@ -23,6 +23,7 @@ const getMethodLabel = (value: string) =>
 const getTypeLabel = (value: string) => {
   // Handle new DISBURSEMENT type
   if (value === "DISBURSEMENT") return "Giải ngân";
+  if (value === "OTHER") return "Khác";
   return PAYMENT_TYPE_OPTIONS.find((o) => o.value === value)?.label || value;
 };
 

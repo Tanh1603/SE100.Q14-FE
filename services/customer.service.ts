@@ -74,13 +74,26 @@ export const CustomerService = {
     return data;
   },
 
-  //   create: async (data: CreateCustomerDto) => {
-  //     const customer = await fetch(`${API_BASE_URL}/customers`);
-  //     return res.data;
-  //   },
+  update: async (id: string, data: FormData, token: string): Promise<any> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/customers/${id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // No Content-Type header needed for FormData; browser sets it with boundary
+        },
+        body: data,
+      });
 
-  //   update: async (id: string, data: Partial<CreateCustomerDto>) => {
-  //     const customer = await fetch(`${API_BASE_URL}/customers`);
-  //     return res.data;
-  //   },
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update customer");
+      }
+
+      return await res.json();
+    } catch (error) {
+      console.log("Error updating customer:", error);
+      throw error;
+    }
+  },
 };

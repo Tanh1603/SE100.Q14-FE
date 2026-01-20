@@ -67,7 +67,7 @@ export function StatusAwareActionPanel({
 }: StatusAwareActionPanelProps) {
   const router = useRouter();
   const { user } = useUser();
-  const role = getUserRole(user);
+  const role = getUserRole(user?.publicMetadata);
   const canApproveReject = isManagerOrAdmin(role);
 
   const [isPayOpen, setIsPayOpen] = useState(false);

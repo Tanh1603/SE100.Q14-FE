@@ -37,3 +37,19 @@ export const useCreateCustomer = () => {
     },
   });
 };
+
+export const useUpdateCustomer = () => {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
+      const token = await getToken();
+      if (!token) throw new Error("Unauthenticated");
+      return CustomerService.update(id, data, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: customerKeys.list() });
+    },
+  });
+};

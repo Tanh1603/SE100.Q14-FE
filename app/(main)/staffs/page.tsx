@@ -7,7 +7,10 @@ import { AppDialog } from "@/components/app-dialog";
 import { DataTable } from "@/components/data-table";
 import { AppPagination } from "@/components/pagination";
 import { useStaff, useTerminateStaff } from "@/hooks/use-staff";
+import { getUserRole } from "@/lib/role.helper";
+import { Role } from "@/types/constant";
 import { Staff } from "@/types/staff";
+import { useUser } from "@clerk/nextjs";
 import { Label } from "@radix-ui/react-label";
 import { LogOut, PlusCircle, RotateCcw, Search, UserCog } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +24,9 @@ const StaffPage = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useUser();
+  const role = getUserRole(user?.publicMetadata);
+  const isManager = role === Role.MANAGER;
 
   //URl state
   const page = Number(searchParams.get("page") || 1);
@@ -92,10 +98,12 @@ const StaffPage = () => {
 
         <div className="mt-5 pt-5 px-5 pb-5 bg-white rounded-xl shadow-sm border overflow-x-auto">
           <div className="flex flex-wrap gap-3 mb-5">
-            <Button onClick={() => setOpenDialog(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Thêm mới
-            </Button>
+            {!isManager && (
+              <Button onClick={() => setOpenDialog(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Thêm mới
+              </Button>
+            )}
 
             <Button
               variant="destructive"

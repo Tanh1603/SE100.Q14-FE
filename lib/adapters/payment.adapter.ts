@@ -43,8 +43,8 @@ export const PaymentAdapter: BaseAdapter<Payment, PaymentDTO> = {
             id: dto.loanId,
             contractNumber: undefined, // Will be enriched by service
             customerName: dto.customerName, // Mapped from root
-            outstandingBalance: 0
-        },
+            outstandingBalance: 0,
+          },
     };
   },
 
@@ -92,15 +92,13 @@ export const PaymentResponseAdapter = {
 export const CreatePaymentAdapter = {
   toPayload(request: CreatePaymentRequest): any {
     return {
+      storeId: request.storeId,
       loanId: request.loanId,
       amount: request.amount,
       paymentMethod: request.paymentMethod,
-      paymentType: request.paymentType,
+      paymentType:
+        request.paymentType === "OTHER_INCOME" ? "OTHER" : request.paymentType,
       notes: request.notes,
-      // transactionDate is not in OpenAPI PaymentRequestDto, but keeping it if needed or removing if strictly adhering to spec.
-      // OpenAPI doesn't list it, so it might be ignored by backend.
-      // Checked openapi: PaymentRequestDto has loanId, amount, paymentMethod, paymentType, notes.
-      // So I will only include these.
     };
   },
 };

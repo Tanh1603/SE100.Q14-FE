@@ -76,12 +76,13 @@ type CustomerFormData = {
   spouseOccupation?: string;
 };
 
-import { useCreateCustomer } from "@/hooks/use-customer";
+import { useCreateCustomer, useUpdateCustomer } from "@/hooks/use-customer";
 // ... other imports
 
 const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
   const isEditMode = !!initialCustomer;
   const createMutation = useCreateCustomer();
+  const updateMutation = useUpdateCustomer();
 
   const form = useForm<CustomerFormData>({
     defaultValues: initialCustomer
@@ -124,10 +125,19 @@ const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
   const [avatar, setAvatar] = useState<string | undefined>(undefined);
   const [frontFile, setFrontFile] = useState<File | null>(null);
 
+  // Back ID state
+  const [backPreview, setBackPreview] = useState<string | undefined>(undefined);
+  const [backFile, setBackFile] = useState<File | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleBackUploadClick = () => {
+    backFileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,6 +153,19 @@ const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
     reader.readAsDataURL(file);
   };
 
+  const handleBackFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Store file for upload
+    setBackFile(file);
+
+    // Preview
+    const reader = new FileReader();
+    reader.onload = () => setBackPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   // ... location logic ...
   const provinceId = form.watch("provinceId");
   const selectedProvince = provinces?.find((p) => p.id === provinceId);
@@ -153,32 +176,113 @@ const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
   // handle submit
   const onSubmit = async (data: CustomerFormData) => {
     try {
-      const formData = new FormData();
+      // --- VALIDATION & DATA PREP ---
+      // Clean income: remove non-numeric chars (dots, commas)
+      const rawIncome = data.monthlyIncome
+        ? data.monthlyIncome.toString().replace(/\D/g, "")
+        : "0";
+      const incomeVal = Number(rawIncome);
 
-      // Append all text fields
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          // Handle numeric fields if needed, or just append as string
-          formData.append(key, value.toString());
+      if (isEditMode && initialCustomer) {
+        // UPDATE LOGIC
+        const updateFormData = new FormData();
+
+        // Append only allowed fields for update based on OpenAPI schema
+        if (data.fullName) updateFormData.append("fullName", data.fullName);
+        if (data.phone) updateFormData.append("phone", data.phone);
+        if (data.email) updateFormData.append("email", data.email);
+        if (data.address) updateFormData.append("address", data.address);
+        if (data.monthlyIncome)
+          updateFormData.append("monthlyIncome", rawIncome); // Use cleaned income
+
+        // Append files if changed
+        if (frontFile) {
+          updateFormData.append("mattruoc", frontFile);
         }
-      });
+        if (backFile) {
+          updateFormData.append("matsau", backFile);
+        }
 
-      // Append files
-      if (frontFile) {
-        formData.append("mattruoc", frontFile);
-      }
-      // TODO: Handle back side file (matsau) separately if UI allows
-
-      if (isEditMode) {
-        // TODO: Implement update
-        console.log("Update not implemented yet");
+        await updateMutation.mutateAsync({
+          id: initialCustomer.id,
+          data: updateFormData,
+        });
       } else {
-        await createMutation.mutateAsync(formData);
-        if (onSuccess) onSuccess();
+        // CREATE LOGIC - STRICT VALIDATION
+        if (!data.wardId) {
+          alert(
+            "Vui lòng chọn Phường/Xã (Tỉnh/Thành -> Quận/Huyện -> Phường/Xã)",
+          );
+          return;
+        }
+        if (!data.nationalId || data.nationalId.length !== 12) {
+          alert("Số CCCD phải đúng 12 chữ số!");
+          return;
+        }
+        if (!data.phone || data.phone.length < 10 || data.phone.length > 15) {
+          alert("Số điện thoại không hợp lệ (10-15 số)!");
+          return;
+        }
+        if (incomeVal < 3000000) {
+          alert("Thu nhập hàng tháng phải tối thiểu 3.000.000 VNĐ!");
+          return;
+        }
+        // Required Family/Job Fields check
+        if (!data.occupation || !data.workplace) {
+          alert("Vui lòng nhập Thông tin Nghề nghiệp & Nơi làm việc!");
+          return;
+        }
+        if (
+          !data.fatherName ||
+          !data.motherName ||
+          !data.emergencyContactName
+        ) {
+          alert("Vui lòng nhập đầy đủ thông tin Gia đình & Liên hệ khẩn cấp!");
+          return;
+        }
+
+        const createFormData = new FormData();
+
+        let addressHandled = false;
+
+        // Append text fields, excluding UI helpers and manual fields
+        Object.entries(data).forEach(([key, value]) => {
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== "" &&
+            key !== "provinceId" &&
+            key !== "permanentAddress" &&
+            key !== "monthlyIncome"
+          ) {
+            createFormData.append(key, value.toString());
+            if (key === "address") addressHandled = true;
+          }
+        });
+
+        // Append cleaned income
+        createFormData.append("monthlyIncome", rawIncome);
+
+        // Fallback for Address: If no "Address" but "PermanentAddress" exists, usage it
+        if (!addressHandled && data.permanentAddress) {
+          createFormData.append("address", data.permanentAddress);
+        }
+
+        // Append files
+        if (frontFile) {
+          createFormData.append("mattruoc", frontFile);
+        }
+        if (backFile) {
+          createFormData.append("matsau", backFile);
+        }
+
+        await createMutation.mutateAsync(createFormData);
       }
-    } catch (error) {
+
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
       console.error("Failed to submit customer form", error);
-      // You might want to show a toast here
+      alert(error.message || "Có lỗi xảy ra khi lưu khách hàng");
     }
   };
 
@@ -392,24 +496,47 @@ const CustomerForm = ({ initialCustomer, onSuccess }: CustomerFormProps) => {
                   <span className="text-base font-semibold text-gray-700">
                     Mặt sau CCCD
                   </span>
-                  <div className="relative w-full max-w-sm aspect-3/2 rounded-xl bg-gray-100 border-2 border-dashed border-gray-300 cursor-not-allowed flex items-center justify-center overflow-hidden grayscale opacity-70">
-                    <div className="text-center p-4">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-2">
-                        <IdCard className="h-6 w-6 text-gray-400" />
+                  <div
+                    className="relative w-full max-w-sm aspect-3/2 rounded-xl bg-white border-2 border-dashed border-gray-300 cursor-pointer flex items-center justify-center overflow-hidden hover:border-primary hover:bg-gray-50 transition-all shadow-sm group"
+                    onClick={() => handleBackUploadClick()}
+                  >
+                    {backPreview ? (
+                      <Image
+                        src={backPreview}
+                        alt="Back ID"
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="text-center p-4">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                          <IdCard className="h-6 w-6 text-gray-400 group-hover:text-primary" />
+                        </div>
+                        <span className="text-sm text-gray-600 font-medium">
+                          Tải ảnh mặt sau
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">
+                          PNG, JPG, PDF (Max 5MB)
+                        </p>
                       </div>
-                      <span className="text-sm text-gray-500 font-medium">
-                        Đang cập nhật
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Hidden File Input */}
+                {/* Hidden File Input (Front) */}
                 <Input
                   type="file"
                   accept="image/*"
                   ref={fileInputRef}
                   onChange={handleFileChange}
+                  className="hidden"
+                />
+                {/* Hidden File Input (Back) */}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  ref={backFileInputRef}
+                  onChange={handleBackFileChange}
                   className="hidden"
                 />
               </div>

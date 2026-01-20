@@ -58,10 +58,11 @@ export interface Payment {
 
 // Create Payment Request
 export interface CreatePaymentRequest {
-  loanId: string;
+  storeId?: string; // Required for OTHER type
+  loanId?: string;
   amount: number;
   paymentMethod: PaymentMethod;
-  paymentType: PaymentType;
+  paymentType: PaymentType | "OTHER"; // Allow "OTHER" for backend mapping
   referenceCode?: string;
   notes?: string;
   transactionDate?: string; // ISO String - user selected date
